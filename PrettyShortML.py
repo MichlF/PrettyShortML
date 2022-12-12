@@ -4,12 +4,17 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 import datetime
+import functools
+from pprint import pprint
+from collections import defaultdict
 import matplotlib.pyplot as plt
 from textwrap import wrap
-from time import time
+from time import time, perf_counter
 from dataclasses import dataclass
 from pathlib import Path
 from langdetect import detect_langs
+from scipy.cluster import hierarchy
+from scipy.spatial.distance import squareform
 from imblearn.under_sampling import (
     RandomUnderSampler,
     NearMiss,
@@ -34,9 +39,12 @@ from sklearn.metrics import (
     recall_score,
     confusion_matrix,
     f1_score,
-    precision_recall_curve,
+    roc_auc_score,
     roc_curve,
+    precision_recall_curve,
+    average_precision_score,
 )
+from sklearn import set_config
 
 
 @dataclass
@@ -57,7 +65,7 @@ class _BaseClass:
 
     def __post_init__(self):
         """
-        Post_init method that does data type checks.
+        Does data type checks.
         """
         # Data type checks
         if self.df_data is not None:
@@ -69,16 +77,16 @@ class _BaseClass:
                 self.X_train, pd.DataFrame
             ), "X_train must be a pandas DataFrame !"
         if self.y_train is not None:
-            assert (isinstance(self.y_train, pd.DataFrame)) or (
-                isinstance(self.y_train, pd.Series)
+            assert isinstance(
+                self.y_train, (pd.DataFrame, pd.Series)
             ), "y_train must be a pandas DataFrame or Series !"
         if self.X_test is not None:
             assert isinstance(
                 self.X_test, pd.DataFrame
             ), "X_test must be a pandas DataFrame!"
         if self.y_test is not None:
-            assert (isinstance(self.y_test, pd.DataFrame)) or (
-                isinstance(self.y_test, pd.Series)
+            assert isinstance(
+                self.y_test, (pd.DataFrame, pd.Series)
             ), "y_test must be a pandas DataFrame or Series !"
         if self.modelled_data is not None:
             assert isinstance(
@@ -89,7 +97,7 @@ class _BaseClass:
                 self.unmodelled_data, pd.DataFrame
             ), "unmodelled_data must be a pandas DataFrame !"
 
-    def _timer(function):
+    def _timer(function, decimal_places=3, print_result=True):
         """
         Decorater/wrapper function to measure elapsed time of input function
 
@@ -99,19 +107,24 @@ class _BaseClass:
             To be wrapped function.
         """
 
+        @functools.wraps(function)
         def wrapper(*args, **kwargs):
-            before = time()
+            before = perf_counter()
             value = function(*args, **kwargs)
-            after = time()
+            after = perf_counter()
             fname = function.__name__
-            print(f"{fname} took {after - before} secs to run.\n")
+            time_diff = after - before
+            formatted_time = f"{time_diff:.{decimal_places}f}"
+            if print_result:
+                print(f"{fname} took {formatted_time} secs to run.\n")
+
             return value
 
         return wrapper
 
 
 @dataclass
-class PrettyShortModelling(_BaseClass):
+class Modelling(_BaseClass):
     """
     Class containing blue print methods for quickly run standard model training and evaluation pipelines.
     Inherits from _BaseClass.
@@ -253,7 +266,7 @@ class PrettyShortModelling(_BaseClass):
             by calling its fit_resample method to obtain a resampled X_train, y_train dataset
         """
         if method == "pandas":
-            raise NotimplementedError("Not yet here. Come back later, please.")
+            raise NotImplementedError("Not yet here. Come back later, please.")
 
         elif method == "imblearn":
             if method_imblearn == "ros":
@@ -264,7 +277,14 @@ class PrettyShortModelling(_BaseClass):
                 imblearn_obj = SMOTE(
                     sampling_strategy={1: min_sample_size}, *args, **kwargs
                 )
+            else:
+                raise ValueError(
+                    f"Invalid value for method_imblearn: {method_imblearn}"
+                )
+
             return imblearn_obj
+        else:
+            raise ValueError("Invalid value for method: {}".format(method))
 
     @_BaseClass._timer
     def model_train(
@@ -277,6 +297,7 @@ class PrettyShortModelling(_BaseClass):
         ordinal_categories: list[list[str]] = None,
         add_transformers: list = None,
         add_pipesteps: list = None,
+        transform_output: str = "pandas",
         *args,
         **kwargs,
     ) -> tuple[Pipeline, float]:
@@ -310,6 +331,8 @@ class PrettyShortModelling(_BaseClass):
         add_pipesteps : list, optional
             Additional steps for the main pipeline. Formatted as tuple (label str, sklearn
             object), defaults None.
+        transform_output : list, optional
+            ! EMPTY, defaults None.
         *args / *kwargs
             Will be passed to the sklearn.GridsearchCV() function.
 
@@ -323,9 +346,13 @@ class PrettyShortModelling(_BaseClass):
         print(
             f"Building and fitting {estimator_object.__class__.__name__} estimator..."
         )
+        try:
+            set_config(transform_output=transform_output)
+        except Exception as e:
+            print(e, "Couldn't set sklearn's set_config. Is your sklearn version 1.2+ ?")
         # Build transformer for preprocessor
         transformer = []
-        if numeric_features:
+        if numeric_features is not None:
             numeric_transformer = Pipeline(
                 steps=[
                     ("imputer", SimpleImputer()),
@@ -333,14 +360,14 @@ class PrettyShortModelling(_BaseClass):
                 ]
             )
             transformer.append(("numeric", numeric_transformer, numeric_features))
-        if categorical_features:
+        if categorical_features is not None:
             categorical_transformer = OneHotEncoder(
                 handle_unknown="ignore", drop="first"
             )
             transformer.append(
                 ("categoric", categorical_transformer, categorical_features)
             )
-        if ordinal_features:
+        if ordinal_features is not None:
             assert (
                 ordinal_categories
             ), "When using ordinal_features, ordinal_categories has to be provided !"
@@ -348,7 +375,7 @@ class PrettyShortModelling(_BaseClass):
                 categories=ordinal_categories, handle_unknown="ignore"
             )
             transformer.append(("ordinal", ordinal_transformer, ordinal_features))
-        if add_transformers:
+        if add_transformers is not None:
             transformer.append(add_transformers)
         self.preprocessor = ColumnTransformer(transformers=transformer)
         # Build pipeline
@@ -356,11 +383,11 @@ class PrettyShortModelling(_BaseClass):
             ("preprocessor", self.preprocessor),
             ("estimator", estimator_object),
         ]
-        if add_pipesteps:
+        if add_pipesteps is not None:
             pipeline_steps.append(add_pipesteps)
         self.pipe = Pipeline(steps=pipeline_steps)
         # Optional: perform gridsearch
-        if param_grid:
+        if param_grid is not None:
             self.pipe = GridSearchCV(
                 estimator=self.pipe,
                 param_grid=param_grid,
@@ -368,7 +395,10 @@ class PrettyShortModelling(_BaseClass):
                 **kwargs,
             )
         # Fit pipeline
-        self.pipe.fit(self.X_train, self.y_train)
+        if isinstance(self.y_train, pd.DataFrame):
+            self.pipe.fit(self.X_train, self.y_train.values.ravel())
+        else:
+            self.pipe.fit(self.X_train, self.y_train)
         # Get basic metrics
         train_accuracy = self.pipe.score(self.X_train, self.y_train)
 
@@ -485,7 +515,9 @@ class PrettyShortModelling(_BaseClass):
             "Predicted labels\n",
             pd.Series(y_pred).value_counts(),
             "\n\nActual labels\n",
-            pd.Series(self.y_test).value_counts(),
+            self.y_test.value_counts()
+            if isinstance(self.y_test, pd.DataFrame)
+            else pd.Series(self.y_test).value_counts(),
         )
         accuracy = accuracy_score(
             self.y_test,
@@ -504,7 +536,7 @@ class PrettyShortModelling(_BaseClass):
                 con_mat,
                 ax=ax,
                 annot=True,
-                fmt=".4f",
+                fmt=".4f" if normalize_conmat else "d",
                 linewidths=1,
                 linecolor="white",
                 cmap=palette,
@@ -522,74 +554,110 @@ class PrettyShortModelling(_BaseClass):
 
         return accuracy, precision, recall, f1score
 
+    @staticmethod
+    def cluster_informed_feature_selection(
+        data: pd.DataFrame, cluster_threshold: int, dist_linkage=None
+    ):
+        if dist_linkage is None:
+            _, dist_linkage = Plotting.plot_hierarchical_clustering(
+                data=data,
+                metric="spearman",
+            )
+        cluster_ids = hierarchy.fcluster(
+            dist_linkage, cluster_threshold, criterion="distance"
+        )
+        cluster_id_to_feature_ids = defaultdict(list)
+        for idx, cluster_id in enumerate(cluster_ids):
+            cluster_id_to_feature_ids[cluster_id].append(idx)
+        selected_features = [v[0] for v in cluster_id_to_feature_ids.values()]
+
+        return selected_features
+
 
 @dataclass
-class PrettyShortPlotting(_BaseClass):
+class Plotting(_BaseClass):
     """
     Collection of blue print methods to plot metrics of ML pipelines. Inherits from _BaseClass.
     """
 
-    @classmethod
     def plot_eda_pairplot(
-        cls,
         data: pd.DataFrame = None,
+        kind="reg",
         corner: bool = True,
         dropna: bool = True,
         plot_hist: bool = True,
-        fig_size: tuple[int] = (8, 6),
+        fig_size: tuple[int, int] = (12, 8),
         *args,
         **kwargs,
     ) -> plt.Axes:
-        if data is None:
-            try:
-                data = cls.df_data
-                print("No data provided, used instance-specific df_data instead...")
-            except Exception as e:
-                raise Exception(
-                    e,
-                    "No data found. Did you forgot to provide data ?",
-                )
+        print(
+            "Starting to plot pairplots. Depending on the dateset size, this may take a while...",
+            "\nShould it take too long, consider changing the default 'kind' parameter to something else than 'reg'.",
+        )
         if plot_hist:
-            data.hist(figsize=fig_size)
-        _fig, ax = plt.subplots(fig_size=fig_size)
-        sns.pairplot(
+            _fig, ax = plt.subplots(figsize=fig_size)
+            data.hist(ax=ax)
+            plt.show()
+        ax = sns.pairplot(
             data=data,
-            kind="reg",
+            kind=kind,
             diag_kind="kde",
             corner=corner,
             dropna=dropna,
             plot_kws={"scatter_kws": {"alpha": 0.2}},
-            ax=ax * args,
+            *args,
             **kwargs,
         )
+        ax.fig.set_size_inches(fig_size)
         ax.fig.suptitle("Pairwise relationships")
         sns.despine()
+        plt.show()
 
         return ax
 
-    @classmethod
+    @staticmethod
+    def plot_hierarchical_clustering(
+        data: pd.DataFrame,
+        metric: str = "spearman",
+        fig_size: tuple[int, int] = (10, 6),
+        *args,
+        **kwargs,
+    ) -> tuple[plt.Axes, np.ndarray]:
+        # https://scikit-learn.org/stable/auto_examples/inspection/plot_permutation_importance_multicollinear.html#sphx-glr-auto-examples-inspection-plot-permutation-importance-multicollinear-py
+        corr = data.corr(metric)
+        _fig, ax = plt.subplots(figsize=fig_size)
+        # Convert to distance matrix
+        distance_matrix = 1 - np.abs(corr)
+        dist_linkage = hierarchy.ward(squareform(distance_matrix))
+        # Plot hierarchical clustering
+        dendro = hierarchy.dendrogram(
+            dist_linkage,
+            labels=data.columns.tolist(),
+            ax=ax,
+            leaf_rotation=90,
+            *args,
+            **kwargs,
+        )        
+        ax.set_title("Hierarchical clustering as dendrogram (using Ward's linkage")
+        ax.set_ylabel("Threshold")
+        ax.set_xlabel("Feature labels")
+        plt.show()
+
+        return ax, dist_linkage
+
+    @staticmethod
     def plot_eda_corr_mat(
-        cls,
         data: pd.DataFrame = None,
         metric: str = "spearman",
         cmap="vlag",
         mask: bool = True,
         annot: bool = True,
         linewidths=0.5,
-        fig_size: tuple[int] = (12, 8),
+        fig_size: tuple[int, int] = (12, 8),
         wrap_length: int = 60,
         *args,
         **kwargs,
     ) -> plt.Axes:
-        if data is None:
-            try:
-                data = cls.df_data
-                print("No data provided, used instance-specific df_data instead...")
-            except Exception as e:
-                raise Exception(
-                    e,
-                    "No data found. Did you forgot to provide data ?",
-                )
         if mask:
             mask = np.triu(np.ones_like(data.corr()))
         _fig, ax = plt.subplots(figsize=fig_size)
@@ -632,7 +700,7 @@ class PrettyShortPlotting(_BaseClass):
             fontweight="normal",
             rotation=0,
             bbox={"facecolor": "w", "alpha": 1},
-        )  # figtext uses relaive coordinates, if more space is needed uses plt.subplots_adjust(top=.1)
+        )  # figtext uses relative coordinates, if more space is needed uses plt.subplots_adjust(top=.1)
         sns.despine(trim=True)
 
         return ax
@@ -642,10 +710,10 @@ class PrettyShortPlotting(_BaseClass):
         cv,
         X,
         y,
-        group=None,
+        groups=None,
         n_splits: int = 5,
         lw: int = 10,
-        fig_size: tuple[int] = (8, 6),
+        fig_size: tuple[int, int] = (8, 5),
         cmap_data=plt.cm.Paired,
         cmap_cv=plt.cm.coolwarm,
     ) -> plt.Axes:
@@ -653,9 +721,9 @@ class PrettyShortPlotting(_BaseClass):
         Create a sample plot for indices of a cross-validation object. For template, see:
         https://scikit-learn.org/stable/auto_examples/model_selection/plot_cv_indices.html
         """
-        _fig, ax = plt.subplots(fig_size=fig_size)
+        _fig, ax = plt.subplots(figsize=fig_size)
         # Generate the training/testing visualizations for each CV split
-        for ii, (tr, tt) in enumerate(cv.split(X=X, y=y, groups=group)):
+        for ii, (tr, tt) in enumerate(cv.split(X=X, y=y, groups=groups)):
             # Fill in indices with the training/test groups
             indices = np.array([np.nan] * len(X))
             indices[tt] = 1
@@ -678,7 +746,7 @@ class PrettyShortPlotting(_BaseClass):
         ax.scatter(
             range(len(X)),
             [ii + 2.5] * len(X),
-            c=group,
+            c=groups,
             marker="_",
             lw=lw,
             cmap=cmap_data,
@@ -694,84 +762,77 @@ class PrettyShortPlotting(_BaseClass):
             xlim=[0, 100],
         )
         ax.set_title("{}".format(type(cv).__name__), fontsize=15)
+        plt.show()
 
         return ax
 
-    @classmethod
     def plot_reg_coefficients(
-        cls,
         coefs=None,
         feature_names: bool = None,
-        fig_size: tuple[int] = (8, 6),
-        wrap_length: int = 60,
+        fig_size: tuple[int, int] = (10, 6),
+        zero_line: bool = False,
+        annot: bool = False,
+        wrap_length: int = 50,
         *args,
         **kwargs,
     ) -> plt.Axes:
-        if coefs is None:
-            try:
-                # gridsearch
-                coefs = cls.pipe.best_estimator_["estimator"].coefs_
-            except Exception as e:
-                try:  # NO gridsearch
-                    coefs = cls.pipe.estimator["estimator"].coefs_
-                except:
-                    raise Exception(
-                        e,
-                        "No coefs found. Did you forgot to provide coefs ?",
-                    )
-            print("No coefs provided, used instance-specific coefs instead...")
         if not isinstance(coefs, pd.DataFrame):
             coefs = pd.DataFrame(
                 coefs,
                 columns=["Coefficients"],
                 index=feature_names,
-            )
-        _fig, ax = plt.subplots(fig_size=fig_size)
-        sns.barplot(data=coefs, y="Coefficients", orient="h", ax=ax, *args, **kwargs)
-        ax.axvline(x=0, color=".75", lw=2)
+            ).T
+        _fig, ax = plt.subplots(figsize=fig_size)
+        sns.barplot(data=coefs, orient="h", ax=ax, *args, **kwargs)
+        if zero_line:
+            ax.axvline(x=0, color=".75", lw=2)
         ax.set_title("Coefficients")
         ax.set_xlabel("Raw coefficient values")
+        ax.set_ylabel("Features")
         s = "\n".join(
             wrap(
                 "Note: Values demonstrate conditional dependencies, meaning dependencies between a specific feature and the target, when all other feature remain constant.",
                 wrap_length,
             )
         )
-        plt.figtext(
-            x=0.9,
-            y=0.1,
-            s=s,
-            horizontalalignment="center",
-            fontsize=9.5,
-            family="serif",
-            style="normal",
-            fontweight="normal",
-            rotation=0,
-            bbox={"facecolor": "w", "alpha": 1},
-        )  # figtext uses relaive coordinates, if more space is needed uses plt.subplots_adjust(top=.1)
+        if annot:
+            plt.figtext(
+                x=0.9,
+                y=0.2,
+                s=s,
+                horizontalalignment="center",
+                fontsize=9.5,
+                family="serif",
+                style="normal",
+                fontweight="normal",
+                rotation=0,
+                bbox={"facecolor": "w", "alpha": 1},
+            )  # figtext uses relaive coordinates, if more space is needed uses plt.subplots_adjust(top=.1)
         sns.despine(trim=True)
 
         return ax
 
     @staticmethod
-    def plot_reg_predictions(
+    def plot_reg_prediction_errors(
         y_train: list = None,
         y_train_pred: list = None,
         y_test: list = None,
         y_test_pred: list = None,
         datetime_var: datetime = None,
-        fig_size: tuple[int] = (8, 6),
+        fig_size: tuple[int, int] = (10, 6),
         *args,
         **kwargs,
     ) -> list:
+        # Similar to the newly (1.2v) published sklearn function PredictionErrorDisplay
+        # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.PredictionErrorDisplay.html#sklearn.metrics.PredictionErrorDisplay.from_estimator
         return_val = []
         # If provided, plot actual and predicted TRAINING values
-        if (y_train) or (y_train_pred):
-            assert all(
-                var in locals() for var in ("y_train", "y_train_pred")
+        if (y_train) is not None or (y_train_pred) is not None:
+            assert (isinstance(y_train, (pd.DataFrame, np.ndarray, list))) and (
+                isinstance(y_train_pred, (pd.DataFrame, np.ndarray, list))
             ), "If either is defined, both y_train and y_train_pred have to be defined."
-            assert (
-                len(y_train) == y_train_pred
+            assert len(y_train) == len(
+                y_train_pred
             ), "y_train and y_train_pred must have same length."
             _fig1, ax1 = plt.subplots(figsize=fig_size)
             # When a datetime object is provided, we plot actual and predicted against time
@@ -780,17 +841,17 @@ class PrettyShortPlotting(_BaseClass):
                     raise ValueError(e, "\nDatetime_var must be a datetime object.")
                 try:
                     ax1.plot(
-                        x=datetime_var,
-                        y=y_train,
-                        fmt="r--",
+                        datetime_var,  # x
+                        y_train,  # y
+                        "r--",  # fmt
                         label="Actual (y_train)",
                         *args,
                         *kwargs,
                     )
                     ax1.plot(
-                        x=datetime_var,
-                        y=y_train_pred,
-                        fmt="b-",
+                        x=datetime_var,  # x
+                        y=y_train_pred,  # y
+                        fmt="b-",  # fmt
                         label="Predicted (y_train_pred)",
                         *args,
                         *kwargs,
@@ -802,33 +863,45 @@ class PrettyShortPlotting(_BaseClass):
                     )
             # When no datetime object is provided, we plot actual against predicted
             else:
-                ax1.scatter(
-                    y_train,
-                    y_train_pred,
+                data = pd.concat(
+                    [
+                        y_train.reset_index(drop=True),
+                        pd.DataFrame(y_train_pred).reset_index(drop=True),
+                    ],
+                    axis=1,
+                )
+                sns.lineplot(
+                    x=[float(y_train.min()), float(y_train.max())],
+                    y=[float(y_train.min()), float(y_train.max())],
+                    ax=ax1,
+                    errorbar=None,
+                    linestyle="--",
+                    lw=4,
+                    color="red",
+                    label="Perfect performance",
+                )
+                sns.scatterplot(
+                    x=data.iloc[:, 0],
+                    y=data.iloc[:, 1],
+                    ax=ax1,
                     edgecolors=(0, 0, 0),
                     *args,
                     **kwargs,
                 )
-                ax1.plot(
-                    x=[y_train.min(), y_train.max()],
-                    y=[y_train.min(), y_train.max()],
-                    lw=4,
-                    fmt="r--",
-                    label="Perfect performance",
-                )
-                ax1.set_xlabel("Actual label (y_train)")
+                ax1.set_xlabel("Actual value (y_train)")
                 ax1.set_ylabel("Predicted")
             ax1.set_title("Predictions on training data")
             sns.despine(trim=True)
             return_val.append(ax1)
+            plt.show()
         # If provided, plot actual and predicted TEST values
-        if (y_test) or (y_test_pred):
-            assert all(
-                var in locals() for var in ("y_test", "y_test_pred")
-            ), "If either is defined, both y_test and y_test_pred have to be defined."
-            assert (
-                len(y_test) == y_test_pred
-            ), "y_test and y_test_pred must have same length."
+        if (y_test) is not None or (y_test_pred) is not None:
+            assert (isinstance(y_test, (pd.DataFrame, np.ndarray, list))) and (
+                isinstance(y_test_pred, (pd.DataFrame, np.ndarray, list))
+            ), "If either is defined, both y_train and y_train_pred have to be defined."
+            assert len(y_test) == len(
+                y_test_pred
+            ), "y_train and y_train_pred must have same length."
             _fig2, ax2 = plt.subplots(figsize=fig_size)
             # If a datetime object is provided, we plot actual and predicted against time
             if datetime_var is not None:
@@ -858,25 +931,37 @@ class PrettyShortPlotting(_BaseClass):
                     )
             # When no datetime object is provided, we plot actual against predicted
             else:
-                ax2.scatter(
-                    y_test,
-                    y_test_pred,
+                data = pd.concat(
+                    [
+                        y_test.reset_index(drop=True),
+                        pd.DataFrame(y_test_pred).reset_index(drop=True),
+                    ],
+                    axis=1,
+                )
+                sns.lineplot(
+                    x=[float(y_test.min()), float(y_test.max())],
+                    y=[float(y_test.min()), float(y_test.max())],
+                    ax=ax2,
+                    errorbar=None,
+                    linestyle="--",
+                    lw=4,
+                    color="red",
+                    label="Perfect performance",
+                )
+                sns.scatterplot(
+                    x=data.iloc[:, 0],
+                    y=data.iloc[:, 1],
+                    ax=ax2,
                     edgecolors=(0, 0, 0),
                     *args,
                     **kwargs,
                 )
-                ax2.plot(
-                    x=[y_test.min(), y_test.max()],
-                    y=[y_test.min(), y_test.max()],
-                    fmt="r--",
-                    label="Perfect Performance",
-                    lw=4,
-                )
-                ax2.set_xlabel("Actual label (y_test)")
+                ax2.set_xlabel("Actual value (y_test)")
                 ax2.set_ylabel("Predicted")
             ax2.set_title("Predictions on test data")
             sns.despine(trim=True)
             return_val.append(ax2)
+            plt.show()
 
         return tuple(return_val)
 
@@ -887,7 +972,7 @@ class PrettyShortPlotting(_BaseClass):
         normalize: bool = True,
         cmap=sns.color_palette("YlOrBr", as_cmap=True),
         title: str = "Confusion matrix",
-        fig_size: tuple[int] = (8, 6),
+        fig_size: tuple[int, int] = (8, 5),
         *args,
         **kwargs,
     ) -> plt.Axes:
@@ -920,12 +1005,18 @@ class PrettyShortPlotting(_BaseClass):
     def plot_ROC_binary(
         y_test,
         y_pred_proba,
-        palette="icefire",
+        average="macro",
+        fig_size: tuple[int, int] = (10, 6),
         title: str = "ROC Curve",
-        fig_size: tuple[int] = (8, 6),
+        label="ROC Curve",
         *args,
         **kwargs,
     ) -> tuple[plt.Axes, float]:
+        roc_auc = roc_auc_score(
+            y_test,
+            y_pred_proba,
+            average=average,
+        )
         fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
 
         youden_J = tpr - fpr
@@ -933,25 +1024,32 @@ class PrettyShortPlotting(_BaseClass):
         threshold_best = thresholds[ix]
 
         # Plot
-        _fig, ax = plt.subplots(fig_size=fig_size)
-        kwargs.setdefault("markers", True)
+        _fig, ax = plt.subplots(figsize=fig_size)
         sns.lineplot(
             x=fpr,
             y=tpr,
-            hue=thresholds,
-            palette=sns.color_palette(palette, as_cmap=True),
             ax=ax,
+            errorbar=None,
+            label=label + f" {average} average (AUC = {roc_auc:.2f})",
+            marker=".",
             *args,
             **kwargs,
         )
-        ax.plot(
-            [0, 1], [0, 1], linestyle="--", label="No Skill classifier", color="gray"
+        sns.lineplot(
+            x=[0, 1],
+            y=[0, 1],
+            ax=ax,
+            errorbar=None,
+            label="Chance level classification (AUC = 0.5)",
+            linestyle="--",
+            color="grey",
         )
-        ax.legend("bottom right")
+        ax.legend(loc="lower right")
         ax.set_xlabel("False positive rate")
         ax.set_ylabel("True positive rate")
         ax.set_title(title)
         sns.despine(trim=True)
+        plt.show()
 
         return ax, threshold_best
 
@@ -959,63 +1057,62 @@ class PrettyShortPlotting(_BaseClass):
     def plot_PRC_binary(
         y_test,
         y_pred_proba,
-        palette="icefire",
-        title: str = "ROC Curve",
-        fig_size: tuple[int] = (8, 6),
+        average: str = "macro",
+        fig_size: tuple[int, int] = (10, 6),
+        title: str = "Precision Recall Curve",
+        label="PRC Curve",
         *args,
         **kwargs,
     ) -> tuple[plt.Axes, float]:
+        average_precision = average_precision_score(y_test, y_pred_proba)
         precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
         fscore = (2 * precision * recall) / (precision + recall)
         ix = np.argmax(fscore)
         threshold_best = thresholds[ix]
-        _fig, ax = plt.subplots(fig_size=fig_size)
+        _fig, ax = plt.subplots(figsize=fig_size)
         sns.lineplot(
             x=precision,
             y=recall,
-            hue=thresholds,
-            palette=sns.color_palette(palette, as_cmap=True),
             ax=ax,
-            markers=True,
+            errorbar=None,
+            label=label + f" {average} average (AP = {average_precision:.2f})",
+            marker=".",
             *args,
             **kwargs,
         )
-        ax.plot(
-            [0, 1], [0, 1], linestyle="--", label="No Skill classifier", color="gray"
-        )
-        ax.legend("bottom left")
-        ax.set_xlabel(r"Recall \frac{TP}{TP+FP}$")
-        ax.set_ylabel(r"Precision  $\frac{TP}{TP+FN}$")
+        ax.legend(loc="lower left")
+        ax.set_xlabel(r"Recall   ( $\frac{TP}{TP+FP}$ )")
+        ax.set_ylabel(r"Precision   ( $\frac{TP}{TP+FN}$ )")
         ax.set_title(title)
         sns.despine(trim=True)
+        plt.show()
 
         return ax, threshold_best
 
 
-class PrettyShortEda(_BaseClass):
+class Eda(_BaseClass):
     """
     Collection of exploratory data analysis methods. Inherits from _BaseClass.
     """
 
-    @classmethod
     def eda_clean_check(
-        cls,
-        data: pd.DataFrame = None,
-        fig_size: tuple[int] = (12, 10),
+        data: pd.DataFrame,
+        fig_size: tuple[int, int] = (10, 6),
     ):
-        if data is None:
+        if not isinstance(data, pd.DataFrame):
             try:
-                data = cls.df_data
-                print("No data provided, used instance-specific df_data instead...")
+                data = pd.DataFrame(data)
             except Exception as e:
-                raise Exception(
-                    e,
-                    "No data found. Did you forgot to provide data ?",
-                )
+                print("Couldn't transform data file to DataFrame.")
+                raise ValueError()
         # Check Dtypes
-        print(data.info(), "\n")
-        # Check overall layout
-        print(data.describe(), "\n")
+        print("Inspect dtypes:")
+        pprint(data.info())
+        print("\n")
+        # Check descriptive statistics
+        print("Inspect descriptive statistics:")
+        pprint(data.describe())
+        print("\n")
         # Check for NaNs visually and written
         _fig, ax = plt.subplots(figsize=fig_size)
         sns.heatmap(
@@ -1025,20 +1122,22 @@ class PrettyShortEda(_BaseClass):
         ax.set_xticklabels(
             ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor"
         )
-        print("Amount of NaNs:")
-        print(data.isna().sum(), "\n")
         # Check balance
         for feature in data.columns:
             print(
                 f"Value counts of {feature}:"
             )  #! improve output readability (each value_count is a pd.Series of varying length)
-            print(data[feature].value_counts(), "\n")
+            pprint(data[feature].value_counts())
+            print("\n")
+        print("Amount of NaNs:")
+        pprint(data.isna().sum())
+        print("\n")
         # Check histograms
         data.hist(figsize=fig_size)
         plt.show()
 
 
-class PrettyShortStatics:
+class Statics:
     """
     Collection of staticmethods that do not fit semantically to any of the other classes (yet).
     """
@@ -1124,6 +1223,8 @@ class PrettyShortStatics:
             Returns the probability that the text is in the language specified.
         """
         detections = detect_langs(text)
+        if not detections:
+            return "NaN"
         for detection in detections:
             if detection.lang == language:
 
@@ -1133,13 +1234,11 @@ class PrettyShortStatics:
 
 
 @dataclass
-class PrettyShortML(
-    PrettyShortModelling, PrettyShortPlotting, PrettyShortEda, PrettyShortStatics
-):
+class PrettyShortML(Modelling, Plotting, Eda, Statics):
     """
-    PrettyShortML is a set of classes that contain blue-print-like methods for crucial steps
-    in a typical sklearn Machine Learning work-flow, including but not limited to exploratory
-    data analysis (EDA), modelling, model evaluation and many different visualizations.
-    Functionally, PrettyShortML is an empty main class that inherits methods from all other
-    classes.
+    PrettyShortML is a set of wrapper classes that contain blue-print-like methods for
+    crucial steps in a typical sklearn Machine Learning work-flow, including but not
+    limited to exploratory data analysis (EDA), modelling, model evaluation and many
+    different visualizations. Functionally, PrettyShortML is an empty main class that
+    inherits methods from all other classes.
     """
