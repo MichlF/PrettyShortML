@@ -18,3 +18,4 @@ jobs:
           github-token: ${{ secrets.PSML_REPO_SECRET }}
           labeled: bug, enhancement
           label-operator: OR
+          column: New
