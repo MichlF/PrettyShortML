@@ -95,5 +95,3 @@ _plotting_axes = psml.plot_reg_prediction_errors(
     y_test=my_dataset.y_test,
     y_test_pred=y_test_pred,
 )
-
-print("DONE")

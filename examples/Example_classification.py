@@ -89,5 +89,3 @@ _plotting_ax, best_threshold = psml.plot_ROC_binary(
 _plotting_ax, best_threshold = psml.plot_PRC_binary(
     y_test=my_dataset.y_test, y_pred_proba=y_test_proba[:, 1], average="macro"
 )
-
-print("DONE")
