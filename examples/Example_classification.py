@@ -1,10 +1,10 @@
 # Imports
-from PrettyShortML import PrettyShortML as psml
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn import datasets
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
+from PrettyShortML import PrettyShortML as psml
 
 # Load in sample data: breast cancer classification (binary classes)
 random_state = 42
@@ -30,20 +30,22 @@ my_dataset = psml(
 )
 
 # Plot feature pair plots to inspect distributions and linear relationships
-_plotting_ax = psml.plot_eda_pairplot(
+_plotting_ax = my_dataset.plot_eda_pairplot(
     data=my_dataset.X_train, corner=True, dropna=False, plot_hist=False, fig_size=(9, 6)
 )
 
 # Plot feature correlation matrix to spot colinearity
-_plotting_ax = psml.plot_eda_corr_mat(
+_plotting_ax = my_dataset.plot_eda_corr_mat(
     data=my_dataset.X_train, metric="spearman", cmap="vlag", mask=True, annot=True
 )
 
 # Normally, we'd do a decent amount of feature cleaning and engineering here.
 # For now, let's just do hierarchical clustering on the features' rank-order correlations
 # to select features.
-_plotting_ax, dist_linkage = psml.plot_hierarchical_clustering(data=my_dataset.X_train)
-selected_features = psml.cluster_informed_feature_selection(
+_plotting_ax, dist_linkage = my_dataset.plot_hierarchical_clustering(
+    data=my_dataset.X_train
+)
+selected_features = my_dataset.cluster_informed_feature_selection(
     data=my_dataset.X_train, cluster_threshold=0.5
 )
 # Select the features

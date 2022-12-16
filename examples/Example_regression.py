@@ -1,10 +1,10 @@
 # Imports
-from PrettyShortML import PrettyShortML as psml
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_regression
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LinearRegression
+from PrettyShortML import PrettyShortML as psml
 
 # Load in sample data: regression problem
 random_state = 42
@@ -42,20 +42,22 @@ my_dataset = psml(
 )
 
 # Plot feature pair plots to inspect distributions and linear relationships
-_plotting_ax = psml.plot_eda_pairplot(
+_plotting_ax = my_dataset.plot_eda_pairplot(
     my_dataset.X_train, corner=True, dropna=False, plot_hist=False, fig_size=(9, 6)
 )
 
 # Plot feature correlation matrix to spot colinearity
-_plotting_ax = psml.plot_eda_corr_mat(
+_plotting_ax = my_dataset.plot_eda_corr_mat(
     my_dataset.X_train, metric="spearman", cmap="vlag", mask=True, annot=True
 )
 
 # Normally, we'd do a decent amount of feature cleaning and engineering here.
 # For now, let's just do hierarchical clustering on the features' rank-order correlations
 # to select features.
-_plotting_ax, dist_linkage = psml.plot_hierarchical_clustering(data=my_dataset.X_train)
-selected_features = psml.cluster_informed_feature_selection(
+_plotting_ax, dist_linkage = my_dataset.plot_hierarchical_clustering(
+    data=my_dataset.X_train
+)
+selected_features = my_dataset.cluster_informed_feature_selection(
     data=my_dataset.X_train, cluster_threshold=0.5
 )
 # Select the features
@@ -82,16 +84,14 @@ print(f"The model's performance on training data:\n{training_score:.4f}")
 # The evaluation function for regressions isn't implemented yet.
 
 # Let's plot our coefficients
-_plotting_ax = psml.plot_reg_coefficients(
+_plotting_ax = my_dataset.plot_reg_coefficients(
     coefs=pipeline.best_estimator_["estimator"].coef_
 )
 
 # Let's plot our predictions against the real values
-y_train_pred = pipeline.predict(my_dataset.X_train)
-y_test_pred = pipeline.predict(my_dataset.X_test)
-_plotting_axes = psml.plot_reg_prediction_errors(
+_plotting_axes = my_dataset.plot_reg_prediction_errors(
     y_train=my_dataset.y_train,
-    y_train_pred=y_train_pred,
+    y_train_pred=pipeline.predict(my_dataset.X_train),
     y_test=my_dataset.y_test,
-    y_test_pred=y_test_pred,
+    y_test_pred=pipeline.predict(my_dataset.X_test),
 )
