@@ -1,10 +1,16 @@
 # Imports
-import pandas as pd
 import functools
+import os
+import typing
+import logging
+import logging.config as logging_conf
 from time import perf_counter
 from dataclasses import dataclass
+import yaml
+import pandas as pd
 
-@dataclass
+
+@dataclass(slots=True)
 class _BaseClass:
     """
     Baseclass contains class data shared among all other classes as well as decorator-types.
@@ -53,6 +59,38 @@ class _BaseClass:
             assert isinstance(
                 self.unmodelled_data, pd.DataFrame
             ), "unmodelled_data must be a pandas DataFrame !"
+
+    def init_logger(
+        self,
+        default_path: str = "logging.yaml",
+        default_level: typing.Any = logging.INFO,
+        env_key: str = "LOG_CFG",
+    ):
+        """
+        Initializes a logger with settings from separate YAML file.
+
+        Parameters
+        ----------
+        default_path : str, optional
+            Path to YAML file containing the logger settings, by default "logging.yaml"
+        default_level : typing.Any, optional
+            Python logging object determining the logging level, by default logging.INFO
+        env_key : str, optional
+            _description_, by default "LOG_CFG"
+        """
+        path = default_path
+        value = os.getenv(env_key, None)
+        if value:
+            path = value
+        if os.path.exists(path):
+            with open(path, "rt") as f:
+                config = yaml.safe_load(f.read())
+            logging_conf.dictConfig(config)
+        else:
+            logging.basicConfig(level=default_level)
+        logging.info("")
+        logging.info("Starting a new logging session...")
+        logging.info("")
 
     def _timer(function, decimal_places=3, print_result=True):
         """

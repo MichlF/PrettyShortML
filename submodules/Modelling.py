@@ -1,14 +1,11 @@
 # Imports
-from submodules.BaseClass import _BaseClass
-from submodules.Plotting import Plotting
+from dataclasses import dataclass
+from collections import defaultdict
 import seaborn as sns
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.cluster import hierarchy
-from sklearn.metrics import confusion_matrix
-from collections import defaultdict
-from dataclasses import dataclass
 from imblearn.under_sampling import (
     RandomUnderSampler,
     NearMiss,
@@ -27,9 +24,16 @@ from sklearn.preprocessing import (
 )
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+)
 from sklearn import set_config
-from dataclasses import dataclass
+from submodules.BaseClass import _BaseClass
+from submodules.Plotting import Plotting
 
 
 @dataclass
@@ -41,8 +45,8 @@ class Modelling(_BaseClass):
 
     @staticmethod
     def data_undersampler(
-        max_sample_size: int,
         df: pd.DataFrame,
+        max_sample_size: int,
         y_label: str = None,
         method: str = "pandas",
         method_imblearn: str = "rus",
@@ -420,7 +424,7 @@ class Modelling(_BaseClass):
                 raise ValueError(
                     e,
                     "No model found. Did you forgot to provide a model or did you not run a model training function ?",
-                )
+                ) from e
         try:
             model_name = model.estimator["estimator"].__class__.__name__
         except:  # if no gridsearch

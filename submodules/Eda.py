@@ -1,25 +1,29 @@
 # Imports
-from submodules.BaseClass import _BaseClass
+from pprint import pprint
 import seaborn as sns
 import pandas as pd
-from pprint import pprint
 import matplotlib.pyplot as plt
+from submodules.BaseClass import _BaseClass
 
 class Eda(_BaseClass):
     """
     Collection of exploratory data analysis methods. Inherits from _BaseClass.
     """
-
+    
+    @staticmethod
     def eda_clean_check(
         data: pd.DataFrame,
         fig_size: tuple[int, int] = (10, 6),
     ):
+        """
+        Some docstring
+        """
         if not isinstance(data, pd.DataFrame):
             try:
                 data = pd.DataFrame(data)
             except Exception as e:
                 print("Couldn't transform data file to DataFrame.")
-                raise ValueError()
+                raise ValueError() from e
         # Check Dtypes
         print("Inspect dtypes:")
         pprint(data.info())
@@ -50,3 +54,4 @@ class Eda(_BaseClass):
         # Check histograms
         data.hist(figsize=fig_size)
         plt.show()
+        

@@ -1,6 +1,7 @@
 # Imports
-from submodules.BaseClass import _BaseClass
 import datetime
+from textwrap import wrap
+from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -14,8 +15,7 @@ from sklearn.metrics import (
     precision_recall_curve,
     average_precision_score,
 )
-from textwrap import wrap
-from dataclasses import dataclass
+from submodules.BaseClass import _BaseClass
 
 
 @dataclass
@@ -25,6 +25,7 @@ class Plotting(_BaseClass):
     """
 
     def plot_eda_pairplot(
+        self,
         data: pd.DataFrame = None,
         kind="reg",
         corner: bool = True,
@@ -93,10 +94,10 @@ class Plotting(_BaseClass):
     def plot_eda_corr_mat(
         data: pd.DataFrame = None,
         metric: str = "spearman",
-        cmap="vlag",
+        cmap: str = "vlag",
         mask: bool = True,
         annot: bool = True,
-        linewidths=0.5,
+        linewidths: int = 0.5,
         fig_size: tuple[int, int] = (12, 8),
         wrap_length: int = 60,
         *args,
@@ -211,6 +212,7 @@ class Plotting(_BaseClass):
         return ax
 
     def plot_reg_coefficients(
+        self,
         coefs=None,
         feature_names: bool = None,
         fig_size: tuple[int, int] = (10, 6),
@@ -282,7 +284,7 @@ class Plotting(_BaseClass):
             # When a datetime object is provided, we plot actual and predicted against time
             if datetime_var is not None:
                 if not isinstance(datetime_var, datetime.datetime):
-                    raise ValueError(e, "\nDatetime_var must be a datetime object.")
+                    raise ValueError("\nDatetime_var must be a datetime object.")
                 try:
                     ax1.plot(
                         datetime_var,  # x
@@ -304,7 +306,7 @@ class Plotting(_BaseClass):
                 except Exception as e:
                     raise ValueError(
                         e, "\nDatetime_var must be a valid datetime object."
-                    )
+                    ) from e
             # When no datetime object is provided, we plot actual against predicted
             else:
                 data = pd.concat(
@@ -372,7 +374,7 @@ class Plotting(_BaseClass):
                 except Exception as e:
                     raise ValueError(
                         e, "\nDatetime_var must be a valid datetime object."
-                    )
+                    ) from e
             # When no datetime object is provided, we plot actual against predicted
             else:
                 data = pd.concat(
@@ -417,6 +419,8 @@ class Plotting(_BaseClass):
         cmap=sns.color_palette("YlOrBr", as_cmap=True),
         title: str = "Confusion matrix",
         fig_size: tuple[int, int] = (8, 5),
+        vmin=-1,
+        vmax=1,
         *args,
         **kwargs,
     ) -> plt.Axes:
@@ -431,6 +435,8 @@ class Plotting(_BaseClass):
             fmt=".2f",
             linewidths=1,
             linecolor="white",
+            vmin=vmin,
+            vmax=vmax,
             cmap=cmap,
             *args,
             **kwargs,
@@ -463,8 +469,8 @@ class Plotting(_BaseClass):
         )
         fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
 
-        youden_J = tpr - fpr
-        ix = np.argmax(youden_J)
+        youden_j = tpr - fpr
+        ix = np.argmax(youden_j)
         threshold_best = thresholds[ix]
 
         # Plot

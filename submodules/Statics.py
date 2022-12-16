@@ -1,7 +1,7 @@
-import requests
-import numpy as np
 from time import time
 from pathlib import Path
+import requests
+import numpy as np
 from langdetect import detect_langs
 
 class Statics:
@@ -73,7 +73,7 @@ class Statics:
             print(e, "\nERROR: Could not request url !")
 
     @staticmethod
-    def NLP_get_lang_proba(text: str, language: str = "en") -> float:
+    def nlp_get_lang_proba(text: str, language: str = "en") -> float:
         """
         Detects the likelihood a given string is in the specified language.
 
