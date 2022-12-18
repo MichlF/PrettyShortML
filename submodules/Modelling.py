@@ -1,6 +1,7 @@
 # Imports
 from dataclasses import dataclass
 from collections import defaultdict
+from IPython.display import display
 import seaborn as sns
 import numpy as np
 import pandas as pd
@@ -30,6 +31,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     confusion_matrix,
+    classification_report,
 )
 from sklearn import set_config
 from submodules.BaseClass import _BaseClass
@@ -128,13 +130,9 @@ class Modelling(_BaseClass):
                     sampling_strategy={0: max_sample_size}, *args, **kwargs
                 )
             elif method_imblearn == "nm":
-                imblearn_obj = NearMiss(
-                    sampling_strategy={0: max_sample_size}, *args, **kwargs
-                )
+                imblearn_obj = NearMiss(sampling_strategy={0: max_sample_size}, *args, **kwargs)
             else:
-                raise ValueError(
-                    f"Invalid value for method_imblearn: {method_imblearn}"
-                )
+                raise ValueError(f"Invalid value for method_imblearn: {method_imblearn}")
 
             return imblearn_obj
 
@@ -194,13 +192,9 @@ class Modelling(_BaseClass):
                     sampling_strategy={1: min_sample_size}, *args, **kwargs
                 )
             elif method_imblearn == "smote":
-                imblearn_obj = SMOTE(
-                    sampling_strategy={1: min_sample_size}, *args, **kwargs
-                )
+                imblearn_obj = SMOTE(sampling_strategy={1: min_sample_size}, *args, **kwargs)
             else:
-                raise ValueError(
-                    f"Invalid value for method_imblearn: {method_imblearn}"
-                )
+                raise ValueError(f"Invalid value for method_imblearn: {method_imblearn}")
 
             return imblearn_obj
         else:
@@ -263,15 +257,11 @@ class Modelling(_BaseClass):
         accuracy : float
             Classification accuracy obtained with sklearn score method.
         """
-        print(
-            f"Building and fitting {estimator_object.__class__.__name__} estimator..."
-        )
+        print(f"Building and fitting {estimator_object.__class__.__name__} estimator...")
         try:
             set_config(transform_output=transform_output)
         except Exception as e:
-            print(
-                e, "Couldn't set sklearn's set_config. Is your sklearn version 1.2+ ?"
-            )
+            print(e, "Couldn't set sklearn's set_config. Is your sklearn version 1.2+ ?")
         # Build transformer for preprocessor
         transformer = []
         if numeric_features is not None:
@@ -283,12 +273,8 @@ class Modelling(_BaseClass):
             )
             transformer.append(("numeric", numeric_transformer, numeric_features))
         if categorical_features is not None:
-            categorical_transformer = OneHotEncoder(
-                handle_unknown="ignore", drop="first"
-            )
-            transformer.append(
-                ("categoric", categorical_transformer, categorical_features)
-            )
+            categorical_transformer = OneHotEncoder(handle_unknown="ignore", drop="first")
+            transformer.append(("categoric", categorical_transformer, categorical_features))
         if ordinal_features is not None:
             assert (
                 ordinal_categories
@@ -322,7 +308,12 @@ class Modelling(_BaseClass):
         else:
             self.pipe.fit(self.X_train, self.y_train)
         # Get basic metrics
-        train_accuracy = self.pipe.score(self.X_train, self.y_train)
+        if param_grid is not None: # GridSearch applies CV, so return best_score
+            train_accuracy = self.pipe.best_score_
+        else:
+            train_accuracy = self.pipe.score(self.X_train, self.y_train)
+        # Display pipeline object
+        display(self.pipe)
 
         return self.pipe, train_accuracy
 
@@ -350,9 +341,7 @@ class Modelling(_BaseClass):
         accuracy : float
             Classification accuracy obtained with sklearn score method.
         """
-        print(
-            f"Building and fitting {estimator_object.__class__.__name__} estimator..."
-        )
+        print(f"Building and fitting {estimator_object.__class__.__name__} estimator...")
         self.pipe = Pipeline(
             [
                 (
@@ -381,6 +370,7 @@ class Modelling(_BaseClass):
         average: str = "micro",
         plot_confusion: bool = False,
         normalize_conmat: bool = True,
+        print_class_report: bool = True,
         *args,
         **kwargs,
     ) -> tuple[float, float, float, float]:
@@ -420,10 +410,115 @@ class Modelling(_BaseClass):
             try:
                 model = self.pipe
                 print("No model provided, used instance-specific model instead...")
+            except Exception as _e:
+                raise ValueError(
+                    _e,
+                    "No model found. Did you forgot to provide a model or did you not run a model"
+                    " training function ?",
+                ) from _e
+        try:
+            model_name = model.estimator["estimator"].__class__.__name__
+        except:  # if no gridsearch
+            model_name = model["estimator"].__class__.__name__
+        y_pred = model.predict(self.X_test)
+        print(
+            "\n",
+            model_name,
+            "Model\n",
+            "Predicted labels\n",
+            pd.Series(y_pred).value_counts(),
+            "\n\nActual labels\n",
+            self.y_test.value_counts()
+            if isinstance(self.y_test, pd.DataFrame)
+            else pd.Series(self.y_test).value_counts(),
+        )
+        accuracy = accuracy_score(
+            self.y_test,
+            y_pred,
+        )
+        precision = precision_score(self.y_test, y_pred, average=average)
+        recall = recall_score(self.y_test, y_pred, average=average)
+        f1score = f1_score(self.y_test, y_pred, average=average)
+        if plot_confusion:
+            palette = sns.color_palette("YlOrBr", as_cmap=True)
+            con_mat = confusion_matrix(self.y_test, y_pred)
+            if normalize_conmat:
+                con_mat = con_mat.astype("float") / con_mat.sum(axis=1)[:, np.newaxis]
+            _, ax = plt.subplots()
+            sns.heatmap(
+                con_mat,
+                ax=ax,
+                annot=True,
+                fmt=".4f" if normalize_conmat else "d",
+                linewidths=1,
+                linecolor="white",
+                cmap=palette,
+                cbar=False,
+                *args,
+                **kwargs,
+            )
+            ax.set_xticklabels(
+                ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor"
+            )
+            ax.set_ylabel("Actual")
+            ax.set_xlabel("Predicted")
+            ax.set_title(f"Confusion matrix for {model_name} model")
+            plt.show()
+        if print_class_report:
+            print("The model's performance on test data:\n")
+            print(
+                classification_report(
+                    y_true=self.y_test,
+                    y_pred=y_pred,
+                    labels=self.y_test.iloc[:, 0].unique(),
+                    digits=4,
+                )
+            )
+
+        return accuracy, precision, recall, f1score
+
+    def model_reg_evaluate(
+        self,
+        model: Pipeline = None,
+        average: str = "micro",
+        plot_confusion: bool = False,
+        normalize_conmat: bool = True,
+        *args,
+        **kwargs,
+    ) -> tuple[float, float, float, float]:
+        """
+        Evaluates a given model (the fitted Pipeline object) and returns basic metrics (accuracy,
+        precision, recall, and f1-score). If requested plots multiclass confusion matrices.
+
+        Parameters
+        ----------
+        model : Scitkit-learn Pipeline object, optional
+            Pipeline object with fitted estimator. If not provided, it will be attempted to use the class
+            instance-specific object which only exists if the instance has run model_train before,
+            by default None.
+        *args / *kwargs
+            Will be passed to the seaborn.heatmap() function.
+
+        Returns
+        -------
+        accuracy : float
+            Accuracy score on test data predictions.
+        precision : float
+            Precision score on test data predictions.
+        recall : float
+            Recall score on test data predictions.
+        f1score : float
+            F1-score on test data predictions.
+        """
+        if not model:
+            try:
+                model = self.pipe
+                print("No model provided, used instance-specific model instead...")
             except Exception as e:
                 raise ValueError(
                     e,
-                    "No model found. Did you forgot to provide a model or did you not run a model training function ?",
+                    "No model found. Did you forgot to provide a model or did you not run a model"
+                    " training function ?",
                 ) from e
         try:
             model_name = model.estimator["estimator"].__class__.__name__
@@ -485,9 +580,7 @@ class Modelling(_BaseClass):
                 data=data,
                 metric="spearman",
             )
-        cluster_ids = hierarchy.fcluster(
-            dist_linkage, cluster_threshold, criterion="distance"
-        )
+        cluster_ids = hierarchy.fcluster(dist_linkage, cluster_threshold, criterion="distance")
         cluster_id_to_feature_ids = defaultdict(list)
         for idx, cluster_id in enumerate(cluster_ids):
             cluster_id_to_feature_ids[cluster_id].append(idx)

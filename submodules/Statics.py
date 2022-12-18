@@ -65,12 +65,12 @@ class Statics:
                     )  # this is nasty, but VSC seems to mess up pathlib functions
                     path_save.parent.mkdir(exist_ok=True, parents=True)
                     path_save.write_text(req.text, *args, **kwargs)
-                except Exception as e:
-                    print(e, "\nERROR: Website could not be written to file.")
+                except Exception as _e:
+                    print(_e, "\nERROR: Website could not be written to file.")
 
             return req.text
-        except Exception as e:
-            print(e, "\nERROR: Could not request url !")
+        except Exception as _e:
+            print(_e, "\nERROR: Could not request url !")
 
     @staticmethod
     def nlp_get_lang_proba(text: str, language: str = "en") -> float:
