@@ -66,7 +66,7 @@ class Eda(_BaseClass):
         print("\n")
         # Check for NaNs visually and written
         _fig, ax = plt.subplots(figsize=fig_size)
-        sns.heatmap(data.isna(), ax=ax, xticklabels=xticklabels)
+        sns.heatmap(data.isna(), ax=ax, xticklabels=xticklabels, vmin=0, vmax=1)
         ax.set_title("Overview over all NaNs in dataset")
         ax.set_xlabel("Feature labels")
         ax.set_ylabel("Data rows")

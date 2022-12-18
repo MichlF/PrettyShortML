@@ -309,14 +309,22 @@ class Plotting(_BaseClass):
                 sns.despine(trim=True)
             # When no datetime object is provided, we plot actual against predicted
             else:
+                if plotting_residuals:
+                    label_str = "Residual v predicted values"
+                    y_str = "Residuals (actual - predicted values)"
+                    title_str = "Residuals vs. predicted values on training data"
+                else:
+                    label_str = "Actual v predicted values"
+                    y_str = "Actual values"
+                    title_str = "Actual vs. predicted values on training data"
                 data = pd.concat(
                     [
                         y_train.reset_index(drop=True),
                         pd.DataFrame(y_train_pred).reset_index(drop=True),
                     ],
                     axis=1,
-                ).rename({"0": "y", 0: "x"}, axis=1)
-                ax1 = sns.JointGrid()
+                ).rename({"0": y_str, 0: "x"}, axis=1)
+                ax1 = sns.JointGrid(height=7, ratio=5)
                 if plotting_residuals:
                     ax1.ax_joint.axhline(
                         y=0, linestyle="--", lw=3, color="red", label="Perfect prediction"
@@ -334,9 +342,9 @@ class Plotting(_BaseClass):
                 sns.regplot(
                     data=data,
                     x="x",
-                    y="y",
+                    y=y_str,
                     ax=ax1.ax_joint,
-                    label="Predicted v actual values",
+                    label=label_str,
                     scatter_kws={"edgecolor": "black"},
                     line_kws={"color": "black", "label":"Linear regression fit"},
                     *args,
@@ -352,18 +360,14 @@ class Plotting(_BaseClass):
                 )
                 sns.kdeplot(
                     data=data,
-                    y="y",
+                    y=y_str,
                     ax=ax1.ax_marg_y,
                     fill=True,
                     alpha=0.3,
                     linewidth=3,
                 )
-                if plotting_residuals:
-                    ax1.ax_joint.set_ylabel("Residuals (actual - predicted values)")
-                    ax1.fig.suptitle("Residuals vs. predicted values on training data")
-                else:
-                    ax1.ax_joint.set_ylabel("Actual values")
-                    ax1.fig.suptitle("Actual vs. predicted values on training data")
+                ax1.ax_joint.set_ylabel(y_str)
+                ax1.fig.suptitle(title_str)
                 ax1.ax_joint.set_xlabel("Predicted values")
                 ax1.ax_joint.legend(loc="upper left")
                 sns.despine(ax=ax1.ax_joint, trim=True)
@@ -407,14 +411,22 @@ class Plotting(_BaseClass):
                     raise ValueError(_e, "\nDatetime_var must be a valid datetime object.") from _e
             # When no datetime object is provided, we plot actual against predicted
             else:
+                if plotting_residuals:
+                    label_str = "Residual v predicted values"
+                    y_str = "Residuals (actual - predicted values)"
+                    title_str = "Residuals vs. predicted values on test data"
+                else:
+                    label_str = "Actual v predicted values"
+                    y_str = "Actual values"
+                    title_str = "Actual vs. predicted values on test data"
                 data = pd.concat(
                     [
                         y_test.reset_index(drop=True),
                         pd.DataFrame(y_test_pred).reset_index(drop=True),
                     ],
                     axis=1,
-                ).rename({"0": "y", 0: "x"}, axis=1)
-                ax2 = sns.JointGrid()
+                ).rename({"0": y_str, 0: "x"}, axis=1)
+                ax2 = sns.JointGrid(height=7, ratio=5)
                 if plotting_residuals:
                     ax2.ax_joint.axhline(
                         y=0, linestyle="--", lw=3, color="red", label="Perfect prediction"
@@ -432,9 +444,9 @@ class Plotting(_BaseClass):
                 sns.regplot(
                     data=data,
                     x="x",
-                    y="y",
+                    y=y_str,
                     ax=ax2.ax_joint,
-                    label="Predicted v actual values",
+                    label=label_str,
                     scatter_kws={"edgecolor": "black", "linewidth": 1},
                     line_kws={"color": "black", "label":"Linear regression fit"},
                     *args,
@@ -450,19 +462,15 @@ class Plotting(_BaseClass):
                 )
                 sns.kdeplot(
                     data=data,
-                    y="y",
+                    y=y_str,
                     ax=ax2.ax_marg_y,
                     fill=True,
                     alpha=0.3,
                     linewidth=3,
                 )
-                if plotting_residuals:
-                    ax2.ax_joint.set_ylabel("Residuals (actual - predicted values)")
-                    ax2.fig.suptitle("Residuals vs. predicted values on test data")
-                else:
-                    ax2.ax_joint.set_ylabel("Actual values")
-                    ax2.fig.suptitle("Actual vs. predicted values on test data")
-                ax2.ax_joint.set_xlabel("Predicted values")
+                ax1.ax_joint.set_ylabel(y_str)
+                ax1.fig.suptitle(title_str)
+                ax1.ax_joint.set_xlabel("Predicted values")
                 ax2.ax_joint.legend(loc="upper left")
                 sns.despine(ax=ax2.ax_joint, trim=True)
             return_val.append(ax2)
