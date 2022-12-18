@@ -67,6 +67,7 @@ pipeline, training_score = my_dataset.model_train(
     numeric_features=my_dataset.X_train.columns,
     param_grid=param_grid,
     cv=cv_splitter,
+    refit=True,
 )
 print(f"The model's performance on training data:\n{training_score:.4f}")
 

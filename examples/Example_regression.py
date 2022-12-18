@@ -103,8 +103,8 @@ _plotting_axes = my_dataset.plot_reg_prediction_errors(
     y_train_pred=y_train_pred,
     y_test=my_dataset.y_test,
     y_test_pred=y_test_pred,
+    plotting_residuals=False,
 )
-
 # Finally, plot our predictions against the residuals
 residuals_train = my_dataset.y_train.iloc[:, 0] - y_train_pred
 residuals_test = my_dataset.y_test.iloc[:, 0] - y_test_pred
@@ -113,5 +113,5 @@ _plotting_axes = my_dataset.plot_reg_prediction_errors(
     y_train_pred=y_train_pred,
     y_test=residuals_test,
     y_test_pred=y_test_pred,
-    plot_residuals=True,
+    plotting_residuals=True,
 )

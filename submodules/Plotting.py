@@ -260,9 +260,9 @@ class Plotting(_BaseClass):
         y_train_pred: list = None,
         y_test: list = None,
         y_test_pred: list = None,
-        plot_residuals: bool = False,
+        plotting_residuals: bool = False,
         datetime_var: datetime = None,
-        fig_size: tuple[int, int] = (9, 5),
+        fig_size: tuple[int, int] = (12, 6),
         *args,
         **kwargs,
     ) -> tuple[list]:
@@ -273,13 +273,17 @@ class Plotting(_BaseClass):
         if (y_train) is not None or (y_train_pred) is not None:
             assert (isinstance(y_train, (pd.DataFrame, pd.Series, np.ndarray, list))) and (
                 isinstance(y_train_pred, (pd.DataFrame, pd.Series, np.ndarray, list))
-            ), "If either is defined, both y_train and y_train_pred have to be defined as either pandas DataFrame or numpy array."
+            ), (
+                "If either is defined, both y_train and y_train_pred have to be defined as either"
+                " pandas DataFrame or numpy array."
+            )
             assert len(y_train) == len(
                 y_train_pred
             ), "y_train and y_train_pred must have same length."
-            _, ax1 = plt.subplots(figsize=fig_size)
             # When a datetime object is provided, we plot actual and predicted against time
             if datetime_var is not None:
+                _, ax1 = plt.subplots(figsize=fig_size)
+                ax1.set_title("Predictions on training data")
                 if not isinstance(datetime_var, datetime.datetime):
                     raise ValueError("\nDatetime_var must be a datetime object.")
                 try:
@@ -302,6 +306,7 @@ class Plotting(_BaseClass):
                     ax1.set_ylabel("y label")
                 except Exception as _e:
                     raise ValueError(_e, "\nDatetime_var must be a valid datetime object.") from _e
+                sns.despine(trim=True)
             # When no datetime object is provided, we plot actual against predicted
             else:
                 data = pd.concat(
@@ -310,49 +315,74 @@ class Plotting(_BaseClass):
                         pd.DataFrame(y_train_pred).reset_index(drop=True),
                     ],
                     axis=1,
-                )
-                if plot_residuals:
-                    ax1.axhline(y=0, linestyle="--", lw=3, color="red", label="Perfect prediction")
+                ).rename({"0": "y", 0: "x"}, axis=1)
+                ax1 = sns.JointGrid()
+                if plotting_residuals:
+                    ax1.ax_joint.axhline(
+                        y=0, linestyle="--", lw=3, color="red", label="Perfect prediction"
+                    )
                 else:
                     sns.lineplot(
                         x=[float(y_train_pred.min()), float(y_train_pred.max())],
                         y=[float(y_train.min()), float(y_train.max())],
-                        ax=ax1,
-                        errorbar=None,
+                        ax=ax1.ax_joint,
                         linestyle="--",
                         lw=3,
                         color="red",
                         label="Perfect prediction",
                     )
-                sns.scatterplot(
-                    x=data.iloc[:, 1],
-                    y=data.iloc[:, 0],
-                    ax=ax1,
-                    edgecolors=(0, 0, 0),
-                    label="Model performance",
+                sns.regplot(
+                    data=data,
+                    x="x",
+                    y="y",
+                    ax=ax1.ax_joint,
+                    label="Predicted v actual values",
+                    scatter_kws={"edgecolor": "black"},
+                    line_kws={"color": "black", "label":"Linear regression fit"},
                     *args,
-                    **kwargs,
+                    **kwargs
                 )
-                if plot_residuals:
-                    ax1.set_ylabel("Residuals (actual - predicted values)")
+                sns.kdeplot(
+                    data=data,
+                    x="x",
+                    ax=ax1.ax_marg_x,
+                    fill=True,
+                    alpha=0.3,
+                    linewidth=3,
+                )
+                sns.kdeplot(
+                    data=data,
+                    y="y",
+                    ax=ax1.ax_marg_y,
+                    fill=True,
+                    alpha=0.3,
+                    linewidth=3,
+                )
+                if plotting_residuals:
+                    ax1.ax_joint.set_ylabel("Residuals (actual - predicted values)")
+                    ax1.fig.suptitle("Residuals vs. predicted values on training data")
                 else:
-                    ax1.set_ylabel("Actual values")
-                ax1.set_xlabel("Predicted values")
-            ax1.set_title("Predictions on training data")
-            sns.despine(trim=True)
+                    ax1.ax_joint.set_ylabel("Actual values")
+                    ax1.fig.suptitle("Actual vs. predicted values on training data")
+                ax1.ax_joint.set_xlabel("Predicted values")
+                ax1.ax_joint.legend(loc="upper left")
+                sns.despine(ax=ax1.ax_joint, trim=True)
             return_val.append(ax1)
             # plt.show()
         # If provided, plot actual and predicted TEST values
         if (y_test) is not None or (y_test_pred) is not None:
             assert (isinstance(y_test, (pd.DataFrame, pd.Series, np.ndarray, list))) and (
                 isinstance(y_test_pred, (pd.DataFrame, pd.Series, np.ndarray, list))
-            ), "If either is defined, both y_train and y_train_pred have to be defined as either pandas DataFrame or numpy array."
+            ), (
+                "If either is defined, both y_train and y_train_pred have to be defined as either"
+                " pandas DataFrame or numpy array."
+            )
             assert len(y_test) == len(
                 y_test_pred
             ), "y_train and y_train_pred must have same length."
-            _, ax2 = plt.subplots(figsize=fig_size)
             # If a datetime object is provided, we plot actual and predicted against time
             if datetime_var is not None:
+                _, ax2 = plt.subplots(figsize=fig_size)
                 if not isinstance(datetime_var, datetime.datetime):
                     raise ValueError("\nDatetime_var must be a datetime object.")
                 try:
@@ -383,36 +413,58 @@ class Plotting(_BaseClass):
                         pd.DataFrame(y_test_pred).reset_index(drop=True),
                     ],
                     axis=1,
-                )
-                if plot_residuals:
-                    ax2.axhline(y=0, linestyle="--", lw=3, color="red", label="Perfect prediction")
+                ).rename({"0": "y", 0: "x"}, axis=1)
+                ax2 = sns.JointGrid()
+                if plotting_residuals:
+                    ax2.ax_joint.axhline(
+                        y=0, linestyle="--", lw=3, color="red", label="Perfect prediction"
+                    )
                 else:
                     sns.lineplot(
                         x=[float(y_test_pred.min()), float(y_test_pred.max())],
                         y=[float(y_test.min()), float(y_test.max())],
-                        ax=ax2,
-                        errorbar=None,
+                        ax=ax2.ax_joint,
                         linestyle="--",
                         lw=3,
                         color="red",
                         label="Perfect prediction",
                     )
-                sns.scatterplot(
-                    x=data.iloc[:, 1],
-                    y=data.iloc[:, 0],
-                    ax=ax2,
-                    edgecolors=(0, 0, 0),
-                    label="Model performance",
+                sns.regplot(
+                    data=data,
+                    x="x",
+                    y="y",
+                    ax=ax2.ax_joint,
+                    label="Predicted v actual values",
+                    scatter_kws={"edgecolor": "black", "linewidth": 1},
+                    line_kws={"color": "black", "label":"Linear regression fit"},
                     *args,
-                    **kwargs,
+                    **kwargs
+                )                
+                sns.kdeplot(
+                    data=data,
+                    x="x",
+                    ax=ax2.ax_marg_x,
+                    fill=True,
+                    alpha=0.3,
+                    linewidth=3,
                 )
-                if plot_residuals:
-                    ax2.set_ylabel("Residuals (actual - predicted values)")
+                sns.kdeplot(
+                    data=data,
+                    y="y",
+                    ax=ax2.ax_marg_y,
+                    fill=True,
+                    alpha=0.3,
+                    linewidth=3,
+                )
+                if plotting_residuals:
+                    ax2.ax_joint.set_ylabel("Residuals (actual - predicted values)")
+                    ax2.fig.suptitle("Residuals vs. predicted values on test data")
                 else:
-                    ax2.set_ylabel("Actual values")
-                ax2.set_xlabel("Predicted values")
-            ax2.set_title("Predictions on test data")
-            sns.despine(trim=True)
+                    ax2.ax_joint.set_ylabel("Actual values")
+                    ax2.fig.suptitle("Actual vs. predicted values on test data")
+                ax2.ax_joint.set_xlabel("Predicted values")
+                ax2.ax_joint.legend(loc="upper left")
+                sns.despine(ax=ax2.ax_joint, trim=True)
             return_val.append(ax2)
             # plt.show()
 
