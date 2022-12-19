@@ -80,7 +80,6 @@ pipeline, training_score = my_dataset.model_train(
     param_grid=param_grid,
     cv=cv_splitter,
     n_jobs=-1,
-    refit=True,
 )
 print(f"The model's performance on training data:\n{training_score:.4f}")
 

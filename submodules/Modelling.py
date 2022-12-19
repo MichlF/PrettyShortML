@@ -308,7 +308,7 @@ class Modelling(_BaseClass):
         else:
             self.pipe.fit(self.X_train, self.y_train)
         # Get basic metrics
-        if param_grid is not None: # GridSearch applies CV, so return best_score
+        if param_grid is not None:  # GridSearch applies CV, so return best_score
             train_accuracy = self.pipe.best_score_
         else:
             train_accuracy = self.pipe.score(self.X_train, self.y_train)
@@ -465,12 +465,17 @@ class Modelling(_BaseClass):
             ax.set_title(f"Confusion matrix for {model_name} model")
             plt.show()
         if print_class_report:
+            labels = (
+                self.y_test.iloc[:, 0].unique()
+                if isinstance(self.y_test, pd.DataFrame)
+                else pd.Series(self.y_test).unique()
+            )
             print("The model's performance on test data:\n")
             print(
                 classification_report(
                     y_true=self.y_test,
                     y_pred=y_pred,
-                    labels=self.y_test.iloc[:, 0].unique(),
+                    labels=labels,
                     digits=4,
                 )
             )

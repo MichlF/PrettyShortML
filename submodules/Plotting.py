@@ -71,14 +71,14 @@ class Plotting(_BaseClass):
     ) -> tuple[plt.Axes, np.ndarray]:
         # https://scikit-learn.org/stable/auto_examples/inspection/plot_permutation_importance_multicollinear.html#sphx-glr-auto-examples-inspection-plot-permutation-importance-multicollinear-py
         corr = data.corr(metric)
-        _, ax = plt.subplots(figsize=fig_size)
         # Convert to distance matrix
         distance_matrix = 1 - np.abs(corr)
         dist_linkage = hierarchy.ward(squareform(distance_matrix))
         # Plot hierarchical clustering
+        _, ax = plt.subplots(figsize=fig_size)
         hierarchy.dendrogram(
-            dist_linkage,
-            labels=data.columns.tolist(),
+            Z=dist_linkage,
+            labels=corr.columns.tolist(),
             ax=ax,
             leaf_rotation=90,
             *args,
@@ -86,6 +86,7 @@ class Plotting(_BaseClass):
         )
         ax.set_title("Hierarchical clustering as dendrogram (using Ward's linkage")
         ax.set_ylabel("Threshold")
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
         ax.set_xlabel("Feature labels")
         # plt.show()
 
@@ -468,9 +469,9 @@ class Plotting(_BaseClass):
                     alpha=0.3,
                     linewidth=3,
                 )
-                ax1.ax_joint.set_ylabel(y_str)
-                ax1.fig.suptitle(title_str)
-                ax1.ax_joint.set_xlabel("Predicted values")
+                ax2.ax_joint.set_ylabel(y_str)
+                ax2.fig.suptitle(title_str)
+                ax2.ax_joint.set_xlabel("Predicted values")
                 ax2.ax_joint.legend(loc="upper left")
                 sns.despine(ax=ax2.ax_joint, trim=True)
             return_val.append(ax2)
