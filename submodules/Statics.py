@@ -1,8 +1,10 @@
-from time import time
 from pathlib import Path
-import requests
+from time import time
+
 import numpy as np
+import requests
 from langdetect import detect_langs
+
 
 class Statics:
     """
@@ -52,11 +54,13 @@ class Statics:
                 print(f"Website status code: {req.status_code}")
             if (req.status_code >= 400) and (req.status_code < 500):
                 print(
-                    f"\nERROR: User authorization or input error. Server response: {req.status_code}"
+                    "\nERROR: User authorization or input error. Server"
+                    f" response: {req.status_code}"
                 )
             elif (req.status_code >= 500) and (req.status_code < 600):
                 print(
-                    f"\nERROR: Server-sided error. Server response: {req.status_code}"
+                    "\nERROR: Server-sided error. Server response:"
+                    f" {req.status_code}"
                 )
             if path_save:
                 try:
@@ -73,7 +77,7 @@ class Statics:
             print(_e, "\nERROR: Could not request url !")
 
     @staticmethod
-    def nlp_get_lang_proba(text: str, language: str = "en") -> float:
+    def nlp_get_lang_proba(text: str, language: str = "en") -> float|str:
         """
         Detects the likelihood a given string is in the specified language.
 

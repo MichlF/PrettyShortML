@@ -1,8 +1,9 @@
 # Imports
-from IPython.display import display
-import seaborn as sns
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from IPython.display import display
+
 from submodules.BaseClass import _BaseClass
 
 
@@ -18,7 +19,15 @@ class Eda(_BaseClass):
         fig_size: tuple[int, int] = (10, 8),
     ) -> None:
         """
-        Some docstring
+        Perform exploratory data analysis to check the quality and structure of the data.
+
+        Parameters:
+        data (pd.DataFrame): The input data to be analyzed.
+        head (int, optional): The number of rows to show when checking feature counts. Defaults to 10.
+        fig_size (tuple of ints, optional): The size of the histogram figures. Defaults to (10, 8).
+
+        Returns:
+        None
         """
         if not isinstance(data, pd.DataFrame):
             try:
@@ -41,7 +50,13 @@ class Eda(_BaseClass):
         data: pd.DataFrame,
     ) -> None:
         """
-        Checks df descriptives
+        Display data types and descriptive statistics for the input DataFrame.
+
+        Parameters:
+        data (pd.DataFrame): The input DataFrame to be analyzed.
+
+        Returns:
+        None
         """
         # Check Dtypes
         print("\nInspect dtypes:")
@@ -54,11 +69,20 @@ class Eda(_BaseClass):
 
     @staticmethod
     def eda_check_nans(
-        data: pd.DataFrame, fig_size: tuple[int, int] = (10, 6), xticklabels: bool = True
+        data: pd.DataFrame,
+        fig_size: tuple[int, int] = (10, 6),
+        xticklabels: bool = True,
     ) -> None:
         """
-        Checks for NaNs
-        With ticklabels we can plot ALL labels. Omit for y labels b/c it may take forever to plot when there is alot of rows
+        Display the number of NaN values in the input DataFrame and a heatmap visualizing the NaN values.
+
+        Parameters:
+        data (pd.DataFrame): The input DataFrame to be analyzed.
+        fig_size (tuple, optional): The size of the heatmap plot. Default is (10, 6).
+        xticklabels (bool, optional): Whether to display x-axis labels in the heatmap plot. Default is True.
+
+        Returns:
+        None
         """
 
         print("Amount of NaNs per feature:")
@@ -66,11 +90,18 @@ class Eda(_BaseClass):
         print("\n")
         # Check for NaNs visually and written
         _fig, ax = plt.subplots(figsize=fig_size)
-        sns.heatmap(data.isna(), ax=ax, xticklabels=xticklabels, vmin=0, vmax=1)
+        sns.heatmap(
+            data.isna(), ax=ax, xticklabels=xticklabels, vmin=0, vmax=1
+        )
         ax.set_title("Overview over all NaNs in dataset")
         ax.set_xlabel("Feature labels")
         ax.set_ylabel("Data rows")
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        ax.set_xticklabels(
+            ax.get_xticklabels(),
+            rotation=45,
+            ha="right",
+            rotation_mode="anchor",
+        )
 
     @staticmethod
     def eda_check_feature_counts(
@@ -78,7 +109,14 @@ class Eda(_BaseClass):
         head: int = 10,
     ) -> None:
         """
-        Checks feature counts
+        Displays the top `head` value counts for each feature in the input dataframe.
+
+        Parameters:
+        data (pd.DataFrame): Input dataframe.
+        head (int): Number of top value counts to display for each feature (default is 10).
+
+        Returns:
+        None
         """
         for feature in data.columns:
             print(f"Top {head} value counts of {feature=}:")

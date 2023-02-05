@@ -1,20 +1,17 @@
 # Imports
 import datetime
-from textwrap import wrap
 from dataclasses import dataclass
+from textwrap import wrap
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
-from sklearn.metrics import (
-    confusion_matrix,
-    roc_auc_score,
-    roc_curve,
-    precision_recall_curve,
-    average_precision_score,
-)
+from sklearn.metrics import (average_precision_score, confusion_matrix,
+                             precision_recall_curve, roc_auc_score, roc_curve)
+
 from submodules.BaseClass import _BaseClass
 
 
@@ -36,9 +33,10 @@ class Plotting(_BaseClass):
         **kwargs,
     ) -> plt.Axes:
         print(
-            "Starting to plot pairplots. Depending on the dateset size, this may take a while...",
-            "\nShould it take too long, consider changing the default 'kind' parameter to"
-            " something else than 'reg'.",
+            "Starting to plot pairplots. Depending on the dateset size, this"
+            " may take a while...",
+            "\nShould it take too long, consider changing the default 'kind'"
+            " parameter to something else than 'reg'.",
         )
         if plot_hist:
             _, ax = plt.subplots(figsize=fig_size)
@@ -84,9 +82,16 @@ class Plotting(_BaseClass):
             *args,
             **kwargs,
         )
-        ax.set_title("Hierarchical clustering as dendrogram (using Ward's linkage")
+        ax.set_title(
+            "Hierarchical clustering as dendrogram (using Ward's linkage"
+        )
         ax.set_ylabel("Threshold")
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        ax.set_xticklabels(
+            ax.get_xticklabels(),
+            rotation=45,
+            ha="right",
+            rotation_mode="anchor",
+        )
         ax.set_xlabel("Feature labels")
         # plt.show()
 
@@ -123,14 +128,26 @@ class Plotting(_BaseClass):
         )
 
         ax.set_title("Spearman correlation matrix")
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        ax.set_xticklabels(
+            ax.get_xticklabels(),
+            rotation=45,
+            ha="right",
+            rotation_mode="anchor",
+        )
         s = "\n".join(
             wrap(
-                "Note: One of two highly correlating features should be excluded because...",
+                "Note: One of two highly correlating features should be"
+                " excluded because...",
                 wrap_length,
             )
-            + wrap("a. ...it won't contribute any more variance to the model", wrap_length)
-            + wrap("b. ...both features are likely to be highly colinear.", wrap_length)
+            + wrap(
+                "a. ...it won't contribute any more variance to the model",
+                wrap_length,
+            )
+            + wrap(
+                "b. ...both features are likely to be highly colinear.",
+                wrap_length,
+            )
         )
         plt.figtext(
             x=0.6,
@@ -183,7 +200,14 @@ class Plotting(_BaseClass):
                 vmax=1.2,
             )
         # Plot the data classes and groups at the end
-        ax.scatter(range(len(X)), [ii + 1.5] * len(X), c=y, marker="_", lw=lw, cmap=cmap_data)
+        ax.scatter(
+            range(len(X)),
+            [ii + 1.5] * len(X),
+            c=y,
+            marker="_",
+            lw=lw,
+            cmap=cmap_data,
+        )
         ax.scatter(
             range(len(X)),
             [ii + 2.5] * len(X),
@@ -233,8 +257,9 @@ class Plotting(_BaseClass):
         ax.set_ylabel("Features")
         s = "\n".join(
             wrap(
-                "Note: Values demonstrate conditional dependencies, meaning dependencies between a"
-                " specific feature and the target, when all other feature remain constant.",
+                "Note: Values demonstrate conditional dependencies, meaning"
+                " dependencies between a specific feature and the target, when"
+                " all other feature remain constant.",
                 wrap_length,
             )
         )
@@ -272,11 +297,17 @@ class Plotting(_BaseClass):
         return_val = []
         # If provided, plot actual and predicted TRAINING values
         if (y_train) is not None or (y_train_pred) is not None:
-            assert (isinstance(y_train, (pd.DataFrame, pd.Series, np.ndarray, list))) and (
-                isinstance(y_train_pred, (pd.DataFrame, pd.Series, np.ndarray, list))
+            assert (
+                isinstance(
+                    y_train, (pd.DataFrame, pd.Series, np.ndarray, list)
+                )
+            ) and (
+                isinstance(
+                    y_train_pred, (pd.DataFrame, pd.Series, np.ndarray, list)
+                )
             ), (
-                "If either is defined, both y_train and y_train_pred have to be defined as either"
-                " pandas DataFrame or numpy array."
+                "If either is defined, both y_train and y_train_pred have to"
+                " be defined as either pandas DataFrame or numpy array."
             )
             assert len(y_train) == len(
                 y_train_pred
@@ -286,7 +317,9 @@ class Plotting(_BaseClass):
                 _, ax1 = plt.subplots(figsize=fig_size)
                 ax1.set_title("Predictions on training data")
                 if not isinstance(datetime_var, datetime.datetime):
-                    raise ValueError("\nDatetime_var must be a datetime object.")
+                    raise ValueError(
+                        "\nDatetime_var must be a datetime object."
+                    )
                 try:
                     ax1.plot(
                         x=datetime_var,
@@ -306,14 +339,18 @@ class Plotting(_BaseClass):
                     )
                     ax1.set_ylabel("y label")
                 except Exception as _e:
-                    raise ValueError(_e, "\nDatetime_var must be a valid datetime object.") from _e
+                    raise ValueError(
+                        _e, "\nDatetime_var must be a valid datetime object."
+                    ) from _e
                 sns.despine(trim=True)
             # When no datetime object is provided, we plot actual against predicted
             else:
                 if plotting_residuals:
                     label_str = "Residual v predicted values"
                     y_str = "Residuals (actual - predicted values)"
-                    title_str = "Residuals vs. predicted values on training data"
+                    title_str = (
+                        "Residuals vs. predicted values on training data"
+                    )
                 else:
                     label_str = "Actual v predicted values"
                     y_str = "Actual values"
@@ -328,11 +365,18 @@ class Plotting(_BaseClass):
                 ax1 = sns.JointGrid(height=7, ratio=5)
                 if plotting_residuals:
                     ax1.ax_joint.axhline(
-                        y=0, linestyle="--", lw=3, color="red", label="Perfect prediction"
+                        y=0,
+                        linestyle="--",
+                        lw=3,
+                        color="red",
+                        label="Perfect prediction",
                     )
                 else:
                     sns.lineplot(
-                        x=[float(y_train_pred.min()), float(y_train_pred.max())],
+                        x=[
+                            float(y_train_pred.min()),
+                            float(y_train_pred.max()),
+                        ],
                         y=[float(y_train.min()), float(y_train.max())],
                         ax=ax1.ax_joint,
                         linestyle="--",
@@ -347,9 +391,12 @@ class Plotting(_BaseClass):
                     ax=ax1.ax_joint,
                     label=label_str,
                     scatter_kws={"edgecolor": "black"},
-                    line_kws={"color": "black", "label":"Linear regression fit"},
+                    line_kws={
+                        "color": "black",
+                        "label": "Linear regression fit",
+                    },
                     *args,
-                    **kwargs
+                    **kwargs,
                 )
                 sns.kdeplot(
                     data=data,
@@ -376,11 +423,15 @@ class Plotting(_BaseClass):
             # plt.show()
         # If provided, plot actual and predicted TEST values
         if (y_test) is not None or (y_test_pred) is not None:
-            assert (isinstance(y_test, (pd.DataFrame, pd.Series, np.ndarray, list))) and (
-                isinstance(y_test_pred, (pd.DataFrame, pd.Series, np.ndarray, list))
+            assert (
+                isinstance(y_test, (pd.DataFrame, pd.Series, np.ndarray, list))
+            ) and (
+                isinstance(
+                    y_test_pred, (pd.DataFrame, pd.Series, np.ndarray, list)
+                )
             ), (
-                "If either is defined, both y_train and y_train_pred have to be defined as either"
-                " pandas DataFrame or numpy array."
+                "If either is defined, both y_train and y_train_pred have to"
+                " be defined as either pandas DataFrame or numpy array."
             )
             assert len(y_test) == len(
                 y_test_pred
@@ -389,7 +440,9 @@ class Plotting(_BaseClass):
             if datetime_var is not None:
                 _, ax2 = plt.subplots(figsize=fig_size)
                 if not isinstance(datetime_var, datetime.datetime):
-                    raise ValueError("\nDatetime_var must be a datetime object.")
+                    raise ValueError(
+                        "\nDatetime_var must be a datetime object."
+                    )
                 try:
                     ax2.plot(
                         x=datetime_var,
@@ -409,7 +462,9 @@ class Plotting(_BaseClass):
                     )
                     ax2.set_ylabel("y label")
                 except Exception as _e:
-                    raise ValueError(_e, "\nDatetime_var must be a valid datetime object.") from _e
+                    raise ValueError(
+                        _e, "\nDatetime_var must be a valid datetime object."
+                    ) from _e
             # When no datetime object is provided, we plot actual against predicted
             else:
                 if plotting_residuals:
@@ -430,7 +485,11 @@ class Plotting(_BaseClass):
                 ax2 = sns.JointGrid(height=7, ratio=5)
                 if plotting_residuals:
                     ax2.ax_joint.axhline(
-                        y=0, linestyle="--", lw=3, color="red", label="Perfect prediction"
+                        y=0,
+                        linestyle="--",
+                        lw=3,
+                        color="red",
+                        label="Perfect prediction",
                     )
                 else:
                     sns.lineplot(
@@ -449,10 +508,13 @@ class Plotting(_BaseClass):
                     ax=ax2.ax_joint,
                     label=label_str,
                     scatter_kws={"edgecolor": "black", "linewidth": 1},
-                    line_kws={"color": "black", "label":"Linear regression fit"},
+                    line_kws={
+                        "color": "black",
+                        "label": "Linear regression fit",
+                    },
                     *args,
-                    **kwargs
-                )                
+                    **kwargs,
+                )
                 sns.kdeplot(
                     data=data,
                     x="x",
@@ -494,7 +556,9 @@ class Plotting(_BaseClass):
     ) -> plt.Axes:
         con_mat = confusion_matrix(y, y_pred)
         if normalize:
-            con_mat = con_mat.astype("float") / con_mat.sum(axis=1)[:, np.newaxis]
+            con_mat = (
+                con_mat.astype("float") / con_mat.sum(axis=1)[:, np.newaxis]
+            )
         _, ax = plt.subplots(fig_size=fig_size)
         sns.heatmap(
             con_mat,
@@ -509,7 +573,12 @@ class Plotting(_BaseClass):
             *args,
             **kwargs,
         )
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        ax.set_xticklabels(
+            ax.get_xticklabels(),
+            rotation=45,
+            ha="right",
+            rotation_mode="anchor",
+        )
         ax.set_ylabel("Actual")
         ax.set_xlabel("Predicted")
         ax.set_title(title)
@@ -583,7 +652,9 @@ class Plotting(_BaseClass):
     ) -> tuple[plt.Axes, float]:
         #! is this not also capable of doing multiclass? So rename binary in function name!
         average_precision = average_precision_score(y_test, y_pred_proba)
-        precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
+        precision, recall, thresholds = precision_recall_curve(
+            y_test, y_pred_proba
+        )
         fscore = (2 * precision * recall) / (precision + recall)
         ix = np.argmax(fscore)
         threshold_best = thresholds[ix]

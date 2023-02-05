@@ -1,39 +1,28 @@
 # Imports
-from dataclasses import dataclass
 from collections import defaultdict
-from IPython.display import display
-import seaborn as sns
+from dataclasses import dataclass
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import seaborn as sns
+from imblearn.over_sampling import (  # python 3.9+ install with: conda install -c conda-forge imbalanced-learn
+    SMOTE, RandomOverSampler)
+from imblearn.under_sampling import (  # python 3.9+ install with: conda install -c conda-forge imbalanced-learn
+    NearMiss, RandomUnderSampler)
+from IPython.display import display
 from scipy.cluster import hierarchy
-from imblearn.under_sampling import (
-    RandomUnderSampler,
-    NearMiss,
-)  # python 3.9+ install with: conda install -c conda-forge imbalanced-learn
-from imblearn.over_sampling import (
-    RandomOverSampler,
-    SMOTE,
-)  # python 3.9+ install with: conda install -c conda-forge imbalanced-learn
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import (
-    StandardScaler,
-    OneHotEncoder,
-    OrdinalEncoder,
-)
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    classification_report,
-)
 from sklearn import set_config
+from sklearn.compose import ColumnTransformer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import (accuracy_score, classification_report,
+                             confusion_matrix, f1_score, precision_score,
+                             recall_score)
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
+
 from submodules.BaseClass import _BaseClass
 from submodules.Plotting import Plotting
 
@@ -120,7 +109,9 @@ class Modelling(_BaseClass):
                     df_select.append(df.loc[df[y_label] == x_class])
             # Rebuilt dfs for modelling (selected) and testing (rejected) - TBC: we could also rebuilt the original lyrics_data from these
             df_undersamp = pd.concat(df_select).dropna().reset_index(drop=True)
-            df_undersamp_reject = pd.concat(df_reject).dropna().reset_index(drop=True)
+            df_undersamp_reject = (
+                pd.concat(df_reject).dropna().reset_index(drop=True)
+            )
 
             return df_undersamp, df_undersamp_reject
 
@@ -130,9 +121,13 @@ class Modelling(_BaseClass):
                     sampling_strategy={0: max_sample_size}, *args, **kwargs
                 )
             elif method_imblearn == "nm":
-                imblearn_obj = NearMiss(sampling_strategy={0: max_sample_size}, *args, **kwargs)
+                imblearn_obj = NearMiss(
+                    sampling_strategy={0: max_sample_size}, *args, **kwargs
+                )
             else:
-                raise ValueError(f"Invalid value for method_imblearn: {method_imblearn}")
+                raise ValueError(
+                    f"Invalid value for method_imblearn: {method_imblearn}"
+                )
 
             return imblearn_obj
 
@@ -192,9 +187,13 @@ class Modelling(_BaseClass):
                     sampling_strategy={1: min_sample_size}, *args, **kwargs
                 )
             elif method_imblearn == "smote":
-                imblearn_obj = SMOTE(sampling_strategy={1: min_sample_size}, *args, **kwargs)
+                imblearn_obj = SMOTE(
+                    sampling_strategy={1: min_sample_size}, *args, **kwargs
+                )
             else:
-                raise ValueError(f"Invalid value for method_imblearn: {method_imblearn}")
+                raise ValueError(
+                    f"Invalid value for method_imblearn: {method_imblearn}"
+                )
 
             return imblearn_obj
         else:
@@ -257,11 +256,18 @@ class Modelling(_BaseClass):
         accuracy : float
             Classification accuracy obtained with sklearn score method.
         """
-        print(f"Building and fitting {estimator_object.__class__.__name__} estimator...")
+        print(
+            "Building and fitting"
+            f" {estimator_object.__class__.__name__} estimator..."
+        )
         try:
             set_config(transform_output=transform_output)
         except Exception as e:
-            print(e, "Couldn't set sklearn's set_config. Is your sklearn version 1.2+ ?")
+            print(
+                e,
+                "Couldn't set sklearn's set_config. Is your sklearn version"
+                " 1.2+ ?",
+            )
         # Build transformer for preprocessor
         transformer = []
         if numeric_features is not None:
@@ -271,18 +277,27 @@ class Modelling(_BaseClass):
                     ("scaler", StandardScaler()),
                 ]
             )
-            transformer.append(("numeric", numeric_transformer, numeric_features))
+            transformer.append(
+                ("numeric", numeric_transformer, numeric_features)
+            )
         if categorical_features is not None:
-            categorical_transformer = OneHotEncoder(handle_unknown="ignore", drop="first")
-            transformer.append(("categoric", categorical_transformer, categorical_features))
+            categorical_transformer = OneHotEncoder(
+                handle_unknown="ignore", drop="first"
+            )
+            transformer.append(
+                ("categoric", categorical_transformer, categorical_features)
+            )
         if ordinal_features is not None:
-            assert (
-                ordinal_categories
-            ), "When using ordinal_features, ordinal_categories has to be provided !"
+            assert ordinal_categories, (
+                "When using ordinal_features, ordinal_categories has to be"
+                " provided !"
+            )
             ordinal_transformer = OrdinalEncoder(
                 categories=ordinal_categories, handle_unknown="ignore"
             )
-            transformer.append(("ordinal", ordinal_transformer, ordinal_features))
+            transformer.append(
+                ("ordinal", ordinal_transformer, ordinal_features)
+            )
         if add_transformers is not None:
             transformer.append(add_transformers)
         self.preprocessor = ColumnTransformer(transformers=transformer)
@@ -308,7 +323,9 @@ class Modelling(_BaseClass):
         else:
             self.pipe.fit(self.X_train, self.y_train)
         # Get basic metrics
-        if param_grid is not None:  # GridSearch applies CV, so return best_score
+        if (
+            param_grid is not None
+        ):  # GridSearch applies CV, so return best_score
             train_accuracy = self.pipe.best_score_
         else:
             train_accuracy = self.pipe.score(self.X_train, self.y_train)
@@ -341,7 +358,10 @@ class Modelling(_BaseClass):
         accuracy : float
             Classification accuracy obtained with sklearn score method.
         """
-        print(f"Building and fitting {estimator_object.__class__.__name__} estimator...")
+        print(
+            "Building and fitting"
+            f" {estimator_object.__class__.__name__} estimator..."
+        )
         self.pipe = Pipeline(
             [
                 (
@@ -409,12 +429,15 @@ class Modelling(_BaseClass):
         if not model:
             try:
                 model = self.pipe
-                print("No model provided, used instance-specific model instead...")
+                print(
+                    "No model provided, used instance-specific model"
+                    " instead..."
+                )
             except Exception as _e:
                 raise ValueError(
                     _e,
-                    "No model found. Did you forgot to provide a model or did you not run a model"
-                    " training function ?",
+                    "No model found. Did you forgot to provide a model or did"
+                    " you not run a model training function ?",
                 ) from _e
         try:
             model_name = model.estimator["estimator"].__class__.__name__
@@ -443,7 +466,10 @@ class Modelling(_BaseClass):
             palette = sns.color_palette("YlOrBr", as_cmap=True)
             con_mat = confusion_matrix(self.y_test, y_pred)
             if normalize_conmat:
-                con_mat = con_mat.astype("float") / con_mat.sum(axis=1)[:, np.newaxis]
+                con_mat = (
+                    con_mat.astype("float")
+                    / con_mat.sum(axis=1)[:, np.newaxis]
+                )
             _, ax = plt.subplots()
             sns.heatmap(
                 con_mat,
@@ -458,7 +484,10 @@ class Modelling(_BaseClass):
                 **kwargs,
             )
             ax.set_xticklabels(
-                ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor"
+                ax.get_xticklabels(),
+                rotation=45,
+                ha="right",
+                rotation_mode="anchor",
             )
             ax.set_ylabel("Actual")
             ax.set_xlabel("Predicted")
@@ -491,7 +520,9 @@ class Modelling(_BaseClass):
                 data=data,
                 metric="spearman",
             )
-        cluster_ids = hierarchy.fcluster(dist_linkage, cluster_threshold, criterion="distance")
+        cluster_ids = hierarchy.fcluster(
+            dist_linkage, cluster_threshold, criterion="distance"
+        )
         cluster_id_to_feature_ids = defaultdict(list)
         for idx, cluster_id in enumerate(cluster_ids):
             cluster_id_to_feature_ids[cluster_id].append(idx)

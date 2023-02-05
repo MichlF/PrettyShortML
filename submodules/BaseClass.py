@@ -1,13 +1,14 @@
 # Imports
 import functools
-import os
-import typing
 import logging
 import logging.config as logging_conf
-from time import perf_counter
+import os
+import typing
 from dataclasses import dataclass
-import yaml
+from time import perf_counter
+
 import pandas as pd
+import yaml
 
 
 @dataclass(slots=True)

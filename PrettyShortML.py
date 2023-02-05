@@ -1,9 +1,13 @@
 # Imports
 from dataclasses import dataclass
-from submodules import Modelling, Eda, Plotting, Statics
+
+from submodules import Eda, Modelling, Plotting, Statics
+
 
 @dataclass
-class PrettyShortML(Modelling.Modelling, Plotting.Plotting, Eda.Eda, Statics.Statics):
+class PrettyShortML(
+    Modelling.Modelling, Plotting.Plotting, Eda.Eda, Statics.Statics
+):
     """
     PrettyShortML is a set of wrapper classes that contain blue-print-like methods for
     crucial steps in a typical sklearn Machine Learning work-flow, including but not
