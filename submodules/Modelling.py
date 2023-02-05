@@ -6,10 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from imblearn.over_sampling import (  # python 3.9+ install with: conda install -c conda-forge imbalanced-learn
-    SMOTE, RandomOverSampler)
-from imblearn.under_sampling import (  # python 3.9+ install with: conda install -c conda-forge imbalanced-learn
-    NearMiss, RandomUnderSampler)
+# python 3.9+ install with: conda install -c conda-forge imbalanced-learn
+from imblearn.over_sampling import SMOTE, RandomOverSampler
+from imblearn.under_sampling import NearMiss, RandomUnderSampler
 from IPython.display import display
 from scipy.cluster import hierarchy
 from sklearn import set_config
@@ -30,8 +29,8 @@ from submodules.Plotting import Plotting
 @dataclass
 class Modelling(_BaseClass):
     """
-    Class containing blue print methods for quickly run standard model training and evaluation pipelines.
-    Inherits from _BaseClass.
+    Class containing blue print methods for quickly run standard model
+    training and evaluation pipelines. Inherits from _BaseClass.
     """
 
     @staticmethod
@@ -45,49 +44,59 @@ class Modelling(_BaseClass):
         **kwargs,
     ):
         """
-        Undersamples features of a given dataset (a pandas Dataframe) to a given maximum of observations
-        either using pd.sample or Undersample from the imblearn module.
+        Undersamples features of a given dataset (a pandas Dataframe) to a
+        given maximum of observations either using pd.sample or Undersample
+        from the imblearn module.
 
         Parameters
         ----------
         max_sample_size : int
-            Maximum sample size for each target class. In case a given class is < max_sample_size, the data
-            for that class is unchanged.
+            Maximum sample size for each target class. In case a given class
+            is < max_sample_size, the data for that class is unchanged.
         df : pd.DataFrame
             Data (df) to undersample.
         y_label : str, optional
-            Label of the target used as column name in data, defaults to None but needs to be define for
-            when method == "pandas".
+            Label of the target used as column name in data, defaults to None
+            but needs to be define for when method == "pandas".
         method : str, optional
-            Method for undersampling. "pandas" uses the pd.DataFrame.sample method. "imblearn" uses imblearn
-            module to achieve undersampling, by default "pandas".
+            Method for undersampling. "pandas" uses the pd.DataFrame.sample
+            method. "imblearn" uses imblearn module to achieve undersampling,
+            by default "pandas".
         method_imblearn : str, optional
-            Method for imblearn undersampling. "rus" corresponds to Random undersampling which selects a
-            subsample from the majority class randomly. "nm" refers to Near Miss, which selects the
-            subsample based on the distances between the majority class datapoints and the minority
-            class datapoints. In NearMiss3 the nearest n neighbors to each minority sample is selected,
-            and then the furthest point among these is eliminated. In versions 1 and 2, the average
-            and minimum distances between points are used as selection criteria rather than the largest.
+            Method for imblearn undersampling. "rus" corresponds to Random
+            undersampling which selects a subsample from the majority class
+            randomly. "nm" refers to Near Miss, which selects the subsample
+            based on the distances between the majority class datapoints and
+            the minority class datapoints. In NearMiss3 the nearest n
+            neighbors to each minority sample is selected, and then the
+            furthest point among these is eliminated. In versions 1 and 2,
+            the average and minimum distances between points are used as
+            selection criteria rather than the largest.
         *args / *kwargs
-            Will be passed to the pd.DataFrame.sample(), RandomUnderSampler() or NearMiss() function
-            depending on the chosen method parameters.
+            Will be passed to the pd.DataFrame.sample(), RandomUnderSampler()
+            or NearMiss() function depending on the chosen method parameters.
 
         Returns
         -------
         if method == "pandas":
         tuple[pd.DataFrame, pd.DataFrame]
-            Returns to pd.DataFrames. df_undersamp is the undersampled dataframe ready for modelling.
-            df_undersamp_reject contains all rejected feature values.
+            Returns to pd.DataFrames. df_undersamp is the undersampled
+            dataframe ready for modelling. df_undersamp_reject contains
+            all rejected feature values.
         if method == "imblearn":
-            Returns imblearn, either a random undersampling or near miss, object which needs to be used
-            by calling its fit_resample method to obtain a resampled X_train, y_train dataset
+            Returns imblearn, either a random undersampling or near miss,
+            object which needs to be used by calling its fit_resample method
+            to obtain a resampled X_train, y_train dataset
         """
         print(f"Restricting max n for each feature to {max_sample_size}...")
         if method == "pandas":
+            # df with max_sample_size n for each feature class and df with all
+            # rejected n for each feature class (we can use the latter for
+            # testing our model independently)
             df_select, df_reject = (
                 [],
                 [],
-            )  # df with max_sample_size n for each feature class and df with all rejected n for each feature class (we can use the latter for testing our model independently)
+            )
             for x_class in df[y_label].unique():
                 if df.loc[df[y_label] == x_class].shape[0] > max_sample_size:
                     select = df.loc[df[y_label] == x_class].sample(
@@ -107,7 +116,8 @@ class Modelling(_BaseClass):
                     df_reject.append(reject)
                 else:
                     df_select.append(df.loc[df[y_label] == x_class])
-            # Rebuilt dfs for modelling (selected) and testing (rejected) - TBC: we could also rebuilt the original lyrics_data from these
+            # Rebuilt dfs for modelling (selected) and testing (rejected)
+            # TBC: we could also rebuilt the original lyrics_data from these
             df_undersamp = pd.concat(df_select).dropna().reset_index(drop=True)
             df_undersamp_reject = (
                 pd.concat(df_reject).dropna().reset_index(drop=True)
@@ -145,38 +155,43 @@ class Modelling(_BaseClass):
         **kwargs,
     ):
         """
-        Undersamples features of a given dataset (a pandas Dataframe) to a given maximum of observations
-        either using pd.sample or Undersample from the imblearn module.
+        Undersamples features of a given dataset (a pandas Dataframe) to a
+        given maximum of observations either using pd.sample or Undersample
+        from the imblearn module.
 
         Parameters
         ----------
         min_sample_size : int
-            Minimum sample size for each target class. In case a given class is > min_sample_size, the data
-            for that class is unchanged.
+            Minimum sample size for each target class. In case a given class
+            is > min_sample_size, the data for that class is unchanged.
         df : pd.DataFrame
             Data (df) to oversample.
         y_label : str, optional
-            Label of the target used as column name in data, defaults to None but needs to be define for
-            when method == "pandas".
+            Label of the target used as column name in data, defaults to None
+            but needs to be define for when method == "pandas".
         method : str, optional
-            Method for oversampling. "pandas" uses the pd.DataFrame.sample method. "imblearn" uses imblearn
-            module to achieve oversampling, by default "pandas".
+            Method for oversampling. "pandas" uses the pd.DataFrame.sample
+            method. "imblearn" uses imblearn module to achieve oversampling,
+            by default "pandas".
         method_imblearn : str, optional
-            Method for imblearn oversampling. "ros" corresponds to Random undersampling which selects a
-            subsample from the majority class randomly. "smote" refers to SMOTE.
+            Method for imblearn oversampling. "ros" corresponds to Random
+            undersampling which selects a subsample from the majority class
+            randomly. "smote" refers to SMOTE.
         *args / *kwargs
-            Will be passed to the pd.DataFrame.sample(), RandomOverSampler() or SMOTE() function
-            depending on the chosen method parameters.
+            Will be passed to the pd.DataFrame.sample(), RandomOverSampler()
+            or SMOTE() function depending on the chosen method parameters.
 
         Returns
         -------
         if method == "pandas":
         tuple[pd.DataFrame, pd.DataFrame]
-            Returns to pd.DataFrames. df_undersamp is the undersampled dataframe ready for modelling.
-            df_undersamp_reject contains all rejected feature values.
+            Returns to pd.DataFrames. df_undersamp is the undersampled
+            dataframe ready for modelling. df_undersamp_reject
+            contains all rejected feature values.
         if method == "imblearn":
-            Returns imblearn, either a random oversampling or SMOTE, object which needs to be used
-            by calling its fit_resample method to obtain a resampled X_train, y_train dataset
+            Returns imblearn, either a random oversampling or SMOTE, object
+            which needs to be used by calling its fit_resample method to
+            obtain a resampled X_train, y_train dataset
         """
         if method == "pandas":
             raise NotImplementedError("Not yet here. Come back later, please.")
@@ -215,18 +230,20 @@ class Modelling(_BaseClass):
         **kwargs,
     ) -> tuple[Pipeline, float]:
         """
-        Builds a generic ML pipeline and fits any given estimator. Also does gridsearch, if a
-        parameter grid is provided. Standard procedure for numerical features is simple imputing
-        (strategy="mean") and standard scaling. For categorical features, a one-hot encoder
-        (handle_unknown="ignore", drop="first") is used. For ordinal features, an ordinal encoder
-        (handle_unknown="ignore") is used.
+        Builds a generic ML pipeline and fits any given estimator. Also does
+        gridsearch, if a parameter grid is provided. Standard procedure for
+        numerical features is simple imputing (strategy="mean") and standard
+        scaling. For categorical features, a one-hot encoder
+        (handle_unknown="ignore", drop="first") is used. For ordinal features,
+        an ordinal encoder (handle_unknown="ignore") is used.
 
         Parameters
         ----------
         estimator_object : Scikit-learn estimator object
             Scikit-learn estimator object that should be fitted.
         param_grid : dict, optional
-            Parameter grid for GridSearchCV. If not provided, no grid search is performed, default None.
+            Parameter grid for GridSearchCV. If not provided, no grid search
+            is performed, default None.
         numeric_features : list of str, optional
             Numeric features to be added to the preprocessor, default None.
         categorical_features : list of str, optional
@@ -234,16 +251,17 @@ class Modelling(_BaseClass):
         ordinal_features : list of str, optional
             Ordinal features to be added to the preprocessor, default None.
         ordinal_categories : list of list of str, optional
-            When ordinal features are provided, the order of categories has to be provided for the
-            OrdinalEncoder. Each feature should be encoded as list of the unique feature values in
-            ascending order, default None.
+            When ordinal features are provided, the order of categories has to
+            be provided for the OrdinalEncoder. Each feature should be encoded
+            as list of the unique feature values in ascending order, default
+            None.
         add_transformers : tuple or list of tuples, optional
-            Additional transformers for the preprocessor. Formatted as tuple (label str, sklearn
-            transformer object, list of features to which transformation should be applied to),
-            defaults None.
+            Additional transformers for the preprocessor. Formatted as tuple
+            (label str, sklearn transformer object, list of features to which
+            transformation should be applied to), defaults None.
         add_pipesteps : list, optional
-            Additional steps for the main pipeline. Formatted as tuple (label str, sklearn
-            object), defaults None.
+            Additional steps for the main pipeline. Formatted as tuple (label
+            str, sklearn object), defaults None.
         transform_output : list, optional
             ! EMPTY, defaults None.
         *args / *kwargs
@@ -339,15 +357,17 @@ class Modelling(_BaseClass):
         self, estimator_object, param_grid: dict = None, *args, **kwargs
     ) -> tuple[Pipeline, float]:
         """
-        Builds a pipeline with column vectorizer and tfidf transformer that fits a given estimator.
-        Also does gridsearch, if a parameter grid is provided.
+        Builds a pipeline with column vectorizer and tfidf transformer that
+        fits a given estimator. Also does gridsearch, if a parameter grid
+        is provided.
 
         Parameters
         ----------
         estimator_object : Scikit-learn estimator object
             Scikit-learn estimator object that should be fitted.
         param_grid : dict, optional
-            Parameter grid for GridSearchCV. If not provided, no grid search is performed, default None.
+            Parameter grid for GridSearchCV. If not provided, no grid search
+            is performed, default None.
         *args / *kwargs
             Will be passed to the sklearn.GridsearchCV() function.
 
@@ -395,23 +415,25 @@ class Modelling(_BaseClass):
         **kwargs,
     ) -> tuple[float, float, float, float]:
         """
-        Evaluates a given model (the fitted Pipeline object) and returns basic metrics (accuracy,
-        precision, recall, and f1-score). If requested plots multiclass confusion matrices.
+        Evaluates a given model (the fitted Pipeline object) and returns basic
+        metrics (accuracy, precision, recall, and f1-score). If requested plots
+        multiclass confusion matrices.
 
         Parameters
         ----------
         model : Scitkit-learn Pipeline object, optional
-            Pipeline object with fitted estimator. If not provided, it will be attempted to use the class
-            instance-specific object which only exists if the instance has run model_train before,
-            by default None.
+            Pipeline object with fitted estimator. If not provided, it will be
+            attempted to use the class instance-specific object which only
+            exists if the instance has run model_train before, by default None.
         average : str, optional
-            Averaging method for calculating sklearn's precision, recall and f1 score, by default "micro".
+            Averaging method for calculating sklearn's precision, recall and
+            f1 score, by default "micro".
         plot_confusion : bool, optional
-            Whether or not a confusion matrix should be plotted, by default False. Works for
-            multiclass problems, too.
+            Whether or not a confusion matrix should be plotted, by default
+            False. Works for multiclass problems, too.
         normalize_conmat : bool, optional
-            Whether or not the values of the confusion matrix are normalized, by default True.
-            Is ignored, if plot_confusion is False.
+            Whether or not the values of the confusion matrix are normalized,
+            by default True. Is ignored, if plot_confusion is False.
         *args / *kwargs
             Will be passed to the seaborn.heatmap() function.
 
@@ -438,10 +460,10 @@ class Modelling(_BaseClass):
                     _e,
                     "No model found. Did you forgot to provide a model or did"
                     " you not run a model training function ?",
-                ) from _e
+                )
         try:
             model_name = model.estimator["estimator"].__class__.__name__
-        except:  # if no gridsearch
+        except Exception:  # if no gridsearch
             model_name = model["estimator"].__class__.__name__
         y_pred = model.predict(self.X_test)
         print(

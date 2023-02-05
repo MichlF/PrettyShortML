@@ -14,11 +14,13 @@ import yaml
 @dataclass(slots=True)
 class _BaseClass:
     """
-    Baseclass contains class data shared among all other classes as well as decorator-types.
+    Baseclass contains class data shared among all other classes as well as
+    decorator-types.
     """
 
-    # For future versions, we might want to consider setting these to private variables and work with
-    # @property or at least getters and setters to prevent freak overwritting glitches of these vars.
+    # For future versions, we might want to consider setting these to private
+    # variables and work with @property or at least getters and setters to
+    # prevent freak overwritting glitches of these vars.
     df_data: pd.DataFrame = None
     X_train: pd.DataFrame = None
     X_test: pd.DataFrame = None
@@ -73,9 +75,11 @@ class _BaseClass:
         Parameters
         ----------
         default_path : str, optional
-            Path to YAML file containing the logger settings, by default "logging.yaml"
+            Path to YAML file containing the logger settings,
+            by default "logging.yaml"
         default_level : typing.Any, optional
-            Python logging object determining the logging level, by default logging.INFO
+            Python logging object determining the logging level,
+            by default logging.INFO
         env_key : str, optional
             _description_, by default "LOG_CFG"
         """

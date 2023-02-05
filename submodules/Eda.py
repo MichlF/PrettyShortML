@@ -19,12 +19,15 @@ class Eda(_BaseClass):
         fig_size: tuple[int, int] = (10, 8),
     ) -> None:
         """
-        Perform exploratory data analysis to check the quality and structure of the data.
+        Perform exploratory data analysis to check the quality and structure
+        of the data.
 
         Parameters:
         data (pd.DataFrame): The input data to be analyzed.
-        head (int, optional): The number of rows to show when checking feature counts. Defaults to 10.
-        fig_size (tuple of ints, optional): The size of the histogram figures. Defaults to (10, 8).
+        head (int, optional): The number of rows to show when checking feature
+        counts. Defaults to 10.
+        fig_size (tuple of ints, optional): The size of the histogram figures.
+        Defaults to (10, 8).
 
         Returns:
         None
@@ -74,12 +77,15 @@ class Eda(_BaseClass):
         xticklabels: bool = True,
     ) -> None:
         """
-        Display the number of NaN values in the input DataFrame and a heatmap visualizing the NaN values.
+        Display the number of NaN values in the input DataFrame and a heatmap
+        visualizing the NaN values.
 
         Parameters:
         data (pd.DataFrame): The input DataFrame to be analyzed.
-        fig_size (tuple, optional): The size of the heatmap plot. Default is (10, 6).
-        xticklabels (bool, optional): Whether to display x-axis labels in the heatmap plot. Default is True.
+        fig_size (tuple, optional): The size of the heatmap plot. Default is
+        (10, 6).
+        xticklabels (bool, optional): Whether to display x-axis labels in the
+        heatmap plot. Default is True.
 
         Returns:
         None
@@ -109,11 +115,13 @@ class Eda(_BaseClass):
         head: int = 10,
     ) -> None:
         """
-        Displays the top `head` value counts for each feature in the input dataframe.
+        Displays the top `head` value counts for each feature in the input
+        dataframe.
 
         Parameters:
         data (pd.DataFrame): Input dataframe.
-        head (int): Number of top value counts to display for each feature (default is 10).
+        head (int): Number of top value counts to display for each feature
+        (default is 10).
 
         Returns:
         None

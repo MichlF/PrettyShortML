@@ -18,7 +18,8 @@ from submodules.BaseClass import _BaseClass
 @dataclass
 class Plotting(_BaseClass):
     """
-    Collection of blue print methods to plot metrics of ML pipelines. Inherits from _BaseClass.
+    Collection of blue print methods to plot metrics of ML pipelines. Inherits
+    from _BaseClass.
     """
 
     def plot_eda_pairplot(
@@ -149,6 +150,8 @@ class Plotting(_BaseClass):
                 wrap_length,
             )
         )
+        # figtext uses relative coordinates, if more space is needed uses
+        # plt.subplots_adjust(top=.1)
         plt.figtext(
             x=0.6,
             y=0.65,
@@ -160,7 +163,7 @@ class Plotting(_BaseClass):
             fontweight="normal",
             rotation=0,
             bbox={"facecolor": "w", "alpha": 1},
-        )  # figtext uses relative coordinates, if more space is needed uses plt.subplots_adjust(top=.1)
+        )
         sns.despine(trim=True)
 
         return ax
@@ -178,7 +181,8 @@ class Plotting(_BaseClass):
         cmap_cv=plt.cm.coolwarm,
     ) -> plt.Axes:
         """
-        Create a sample plot for indices of a cross-validation object. For template, see:
+        Create a sample plot for indices of a cross-validation object. For
+        template, see:
         https://scikit-learn.org/stable/auto_examples/model_selection/plot_cv_indices.html
         """
         _, ax = plt.subplots(figsize=fig_size)
@@ -264,6 +268,8 @@ class Plotting(_BaseClass):
             )
         )
         if annot:
+            # figtext uses relaive coordinates, if more space is needed uses
+            # plt.subplots_adjust(top=.1)
             plt.figtext(
                 x=0.9,
                 y=0.2,
@@ -275,7 +281,7 @@ class Plotting(_BaseClass):
                 fontweight="normal",
                 rotation=0,
                 bbox={"facecolor": "w", "alpha": 1},
-            )  # figtext uses relaive coordinates, if more space is needed uses plt.subplots_adjust(top=.1)
+            )
         sns.despine(trim=True)
 
         return ax
@@ -292,7 +298,8 @@ class Plotting(_BaseClass):
         *args,
         **kwargs,
     ) -> tuple[list]:
-        # Similar to the newly (1.2v) published sklearn function PredictionErrorDisplay
+        # Similar to the newly (1.2v) published sklearn function
+        # PredictionErrorDisplay
         # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.PredictionErrorDisplay.html#sklearn.metrics.PredictionErrorDisplay.from_estimator
         return_val = []
         # If provided, plot actual and predicted TRAINING values
@@ -312,7 +319,8 @@ class Plotting(_BaseClass):
             assert len(y_train) == len(
                 y_train_pred
             ), "y_train and y_train_pred must have same length."
-            # When a datetime object is provided, we plot actual and predicted against time
+            # When a datetime object is provided, we plot actual and predicted
+            # vs against time
             if datetime_var is not None:
                 _, ax1 = plt.subplots(figsize=fig_size)
                 ax1.set_title("Predictions on training data")
@@ -343,7 +351,7 @@ class Plotting(_BaseClass):
                         _e, "\nDatetime_var must be a valid datetime object."
                     ) from _e
                 sns.despine(trim=True)
-            # When no datetime object is provided, we plot actual against predicted
+            # When no datetime object is provided, we plot actual vs predicted
             else:
                 if plotting_residuals:
                     label_str = "Residual v predicted values"
@@ -436,7 +444,7 @@ class Plotting(_BaseClass):
             assert len(y_test) == len(
                 y_test_pred
             ), "y_train and y_train_pred must have same length."
-            # If a datetime object is provided, we plot actual and predicted against time
+            # If datetime object is provided, plot actual and predicted vs time
             if datetime_var is not None:
                 _, ax2 = plt.subplots(figsize=fig_size)
                 if not isinstance(datetime_var, datetime.datetime):
@@ -465,7 +473,7 @@ class Plotting(_BaseClass):
                     raise ValueError(
                         _e, "\nDatetime_var must be a valid datetime object."
                     ) from _e
-            # When no datetime object is provided, we plot actual against predicted
+            # When no datetime object is provided, we plot actual vs predicted
             else:
                 if plotting_residuals:
                     label_str = "Residual v predicted values"
@@ -597,7 +605,8 @@ class Plotting(_BaseClass):
         *args,
         **kwargs,
     ) -> tuple[plt.Axes, float]:
-        #! is this not also capable of doing multiclass? So rename binary in function name!
+        # ! is this not also capable of doing multiclass?
+        # ! So rename binary in function name!
         roc_auc = roc_auc_score(
             y_test,
             y_pred_proba,
@@ -650,7 +659,8 @@ class Plotting(_BaseClass):
         *args,
         **kwargs,
     ) -> tuple[plt.Axes, float]:
-        #! is this not also capable of doing multiclass? So rename binary in function name!
+        # ! is this not also capable of doing multiclass?
+        # ! So rename binary in function name!
         average_precision = average_precision_score(y_test, y_pred_proba)
         precision, recall, thresholds = precision_recall_curve(
             y_test, y_pred_proba

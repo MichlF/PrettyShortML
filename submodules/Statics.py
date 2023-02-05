@@ -1,5 +1,6 @@
 from pathlib import Path
 from time import time
+from typing import Union
 
 import numpy as np
 import requests
@@ -8,7 +9,8 @@ from langdetect import detect_langs
 
 class Statics:
     """
-    Collection of staticmethods that do not fit semantically to any of the other classes (yet).
+    Collection of staticmethods that do not fit semantically to any of the
+    other classes (yet).
     """
 
     @staticmethod
@@ -64,9 +66,10 @@ class Statics:
                 )
             if path_save:
                 try:
+                    # this is nasty, but VSC seems to mess up pathlib functions
                     path_save = Path(
                         str(Path(".").resolve()) + "/" + path_save
-                    )  # this is nasty, but VSC seems to mess up pathlib functions
+                    )
                     path_save.parent.mkdir(exist_ok=True, parents=True)
                     path_save.write_text(req.text, *args, **kwargs)
                 except Exception as _e:
@@ -77,7 +80,9 @@ class Statics:
             print(_e, "\nERROR: Could not request url !")
 
     @staticmethod
-    def nlp_get_lang_proba(text: str, language: str = "en") -> float|str:
+    def nlp_get_lang_proba(
+        text: str, language: str = "en"
+    ) -> Union[float, str]:
         """
         Detects the likelihood a given string is in the specified language.
 
