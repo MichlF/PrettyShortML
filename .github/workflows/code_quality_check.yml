@@ -24,6 +24,6 @@ jobs:
           pip install isort black flake8
       - name: Check quality
         run: |
-          black --check tests src benchmarks metrics
-          isort --check-only tests src benchmarks metrics
-          flake8 tests src benchmarks metrics
+          black .
+          isort .
+          flake8 .
