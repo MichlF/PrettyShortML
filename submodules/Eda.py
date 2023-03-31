@@ -91,23 +91,30 @@ class Eda(_BaseClass):
         None
         """
 
-        print("Amount of NaNs per feature:")
-        display(data.isna().sum())
+        print("Missing values per feature:")
+        print(
+            pd.DataFrame(
+                [
+                    data.isna().sum(),
+                    (data.isna().sum() * 100 / len(data)).round(2),
+                ],
+                index=["Number", "Percentage"],
+            ).T
+        )
         print("\n")
         # Check for NaNs visually and written
         _fig, ax = plt.subplots(figsize=fig_size)
-        sns.heatmap(
-            data.isna(), ax=ax, xticklabels=xticklabels, vmin=0, vmax=1
-        )
+        sns.heatmap(data.isna(), ax=ax, vmin=0, vmax=1)
         ax.set_title("Overview over all NaNs in dataset")
         ax.set_xlabel("Feature labels")
         ax.set_ylabel("Data rows")
-        ax.set_xticklabels(
-            ax.get_xticklabels(),
-            rotation=45,
-            ha="right",
-            rotation_mode="anchor",
-        )
+        if xticklabels:
+            ax.set_xticklabels(
+                ax.get_xticklabels(),
+                rotation=45,
+                ha="right",
+                rotation_mode="anchor",
+            )
 
     @staticmethod
     def eda_check_feature_counts(
@@ -130,3 +137,23 @@ class Eda(_BaseClass):
             print(f"Top {head} value counts of {feature=}:")
             display(data[feature].value_counts().head(head))
             print("\n")
+
+    @staticmethod
+    def eda_check_nonpositive_values(data: pd.DataFrame) -> None:
+        """Count the number of non-positive values in each column of a dataframe
+        """
+
+        nonpositive_counts = {}
+        for column in data.columns:
+            if not pd.api.types.is_numeric_dtype(data[column]):
+                nonpositive_counts[column] = pd.Series([0], index=[0])
+            else:
+                nonpositive_counts[column] = pd.Series(
+                    [(data[column] <= 0).sum()], index=[0]
+                )
+
+        nonpositive_counts = pd.DataFrame.from_dict(nonpositive_counts)
+        nonpositive_counts = nonpositive_counts.T.rename(
+            {0: "Non-positive value count"}, axis=1
+        )
+        print(nonpositive_counts, "\n")
