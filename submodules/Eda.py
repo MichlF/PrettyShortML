@@ -1,5 +1,6 @@
 # Imports
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from IPython.display import display
@@ -61,13 +62,16 @@ class Eda(_BaseClass):
         Returns:
         None
         """
+
         # Check Dtypes
+        info = data.info()
         print("\nInspect dtypes:")
-        display(data.info())
+        print(info)
         print("\n")
         # Check descriptive statistics
+        describe = data.describe(include="all")
         print("Inspect descriptive statistics:")
-        display(data.describe())
+        print(describe)
         print("\n")
 
     @staticmethod
@@ -75,7 +79,7 @@ class Eda(_BaseClass):
         data: pd.DataFrame,
         fig_size: tuple[int, int] = (10, 6),
         xticklabels: bool = True,
-    ) -> None:
+    ) -> plt.Axes:
         """
         Display the number of NaN values in the input DataFrame and a heatmap
         visualizing the NaN values.
@@ -91,16 +95,15 @@ class Eda(_BaseClass):
         None
         """
 
+        missing_values = pd.DataFrame(
+            [
+                data.isna().sum(),
+                (data.isna().sum() * 100 / len(data)).round(2),
+            ],
+            index=["Number", "Percentage"],
+        ).T
         print("Missing values per feature:")
-        print(
-            pd.DataFrame(
-                [
-                    data.isna().sum(),
-                    (data.isna().sum() * 100 / len(data)).round(2),
-                ],
-                index=["Number", "Percentage"],
-            ).T
-        )
+        print(missing_values)
         print("\n")
         # Check for NaNs visually and written
         _fig, ax = plt.subplots(figsize=fig_size)
@@ -115,6 +118,8 @@ class Eda(_BaseClass):
                 ha="right",
                 rotation_mode="anchor",
             )
+
+        return ax
 
     @staticmethod
     def eda_check_feature_counts(
@@ -133,27 +138,25 @@ class Eda(_BaseClass):
         Returns:
         None
         """
+
         for feature in data.columns:
+            feature_counts = data[feature].value_counts()
+            print("\n")
             print(f"Top {head} value counts of {feature=}:")
-            display(data[feature].value_counts().head(head))
+            display(feature_counts.head(head))
             print("\n")
 
     @staticmethod
-    def eda_check_nonpositive_values(data: pd.DataFrame) -> None:
-        """Count the number of non-positive values in each column of a dataframe
-        """
-
+    def eda_count_nonpositive_values(data: pd.DataFrame) -> pd.DataFrame:
+        """Count the number of non-positive values in each column of a
+        dataframe"""
         nonpositive_counts = {}
-        for column in data.columns:
-            if not pd.api.types.is_numeric_dtype(data[column]):
-                nonpositive_counts[column] = pd.Series([0], index=[0])
-            else:
-                nonpositive_counts[column] = pd.Series(
-                    [(data[column] <= 0).sum()], index=[0]
-                )
 
-        nonpositive_counts = pd.DataFrame.from_dict(nonpositive_counts)
-        nonpositive_counts = nonpositive_counts.T.rename(
-            {0: "Non-positive value count"}, axis=1
+        for column in data.select_dtypes(include=[np.number]).columns:
+            nonpositive_counts[column] = (data[column] <= 0).sum()
+
+        return pd.DataFrame(
+            {
+                "Non-positive value count of numerical columns": nonpositive_counts
+            }
         )
-        print(nonpositive_counts, "\n")

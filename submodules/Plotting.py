@@ -9,8 +9,13 @@ import pandas as pd
 import seaborn as sns
 from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
-from sklearn.metrics import (average_precision_score, confusion_matrix,
-                             precision_recall_curve, roc_auc_score, roc_curve)
+from sklearn.metrics import (
+    average_precision_score,
+    confusion_matrix,
+    precision_recall_curve,
+    roc_auc_score,
+    roc_curve,
+)
 
 from submodules.BaseClass import _BaseClass
 
@@ -112,11 +117,11 @@ class Plotting(_BaseClass):
         **kwargs,
     ) -> plt.Axes:
         if mask:
-            mask = np.triu(np.ones_like(data.corr()))
+            mask = np.triu(np.ones_like(data.corr(numeric_only=True)))
         _, ax = plt.subplots(figsize=fig_size)
         kwargs.setdefault("cbar", False)
         sns.heatmap(
-            data.corr(metric).round(2),
+            data.corr(metric, numeric_only=True).round(2),
             annot=annot,
             cmap=cmap,
             linewidths=linewidths,
@@ -682,6 +687,11 @@ class Plotting(_BaseClass):
         ax.legend(loc="lower left")
         ax.set_xlabel(r"Recall   ( $\frac{TP}{TP+FP}$ )")
         ax.set_ylabel(r"Precision   ( $\frac{TP}{TP+FN}$ )")
+        ax.set_title(title)
+        sns.despine(trim=True)
+        # plt.show()
+
+        return ax, threshold_best
         ax.set_title(title)
         sns.despine(trim=True)
         # plt.show()
