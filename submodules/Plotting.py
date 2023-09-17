@@ -39,10 +39,14 @@ class Plotting(_BaseClass):
         **kwargs,
     ) -> plt.Axes:
         print(
-            "Starting to plot pairplots. Depending on the dateset size, this"
-            " may take a while...",
-            "\nShould it take too long, consider changing the default 'kind'"
-            " parameter to something else than 'reg'.",
+            (
+                "Starting to generate pairplots. Depending on the dateset"
+                " size, this may take a while..."
+            ),
+            (
+                "\nShould it take too long, consider changing the default"
+                " 'kind' parameter to something else than 'reg'."
+            ),
         )
         if plot_hist:
             _, ax = plt.subplots(figsize=fig_size)
@@ -89,7 +93,7 @@ class Plotting(_BaseClass):
             **kwargs,
         )
         ax.set_title(
-            "Hierarchical clustering as dendrogram (using Ward's linkage"
+            "Hierarchical clustering as dendrogram (using Ward's linkage)"
         )
         ax.set_ylabel("Threshold")
         ax.set_xticklabels(
@@ -142,8 +146,10 @@ class Plotting(_BaseClass):
         )
         s = "\n".join(
             wrap(
-                "Note: One of two highly correlating features should be"
-                " excluded because...",
+                (
+                    "Note: One of two highly correlating features should be"
+                    " excluded because..."
+                ),
                 wrap_length,
             )
             + wrap(
@@ -266,9 +272,11 @@ class Plotting(_BaseClass):
         ax.set_ylabel("Features")
         s = "\n".join(
             wrap(
-                "Note: Values demonstrate conditional dependencies, meaning"
-                " dependencies between a specific feature and the target, when"
-                " all other feature remain constant.",
+                (
+                    "Note: Values demonstrate conditional dependencies,"
+                    " meaning dependencies between a specific feature and the"
+                    " target, when all other feature remain constant."
+                ),
                 wrap_length,
             )
         )
